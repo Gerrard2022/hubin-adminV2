@@ -130,16 +130,16 @@ export default function ToPay() {
             (driver: any) => driver.rides.length > 0
         );
         
-        const total = driverTotalsArray.reduce((sum, driver) => sum + driver.unpaidAmount, 0);
-        const totalUnpaidRides = driverTotalsArray.reduce(
-            (sum, driver) => sum + driver.rideDetails.filter(ride => ride.payment_status === "not paid").length,
+        const total = driverTotalsArray.reduce((sum, driver) => sum + driver.amount, 0);
+        const totalRidesCount = driverTotalsArray.reduce(
+            (sum, driver) => sum + driver.rideDetails.length,
             0
         );
 
         return {
             driverTotals: driverTotalsArray,
             overallTotal: total,
-            totalRides: totalUnpaidRides
+            totalRides: totalRidesCount
         };
     }, [ridesData, driversData]);
 
@@ -316,10 +316,10 @@ export default function ToPay() {
                     />
                     <Table.Column title="Phone Number" dataIndex="phone_number" />
                     <Table.Column
-                        title="Total Unpaid Fare"
-                        dataIndex="unpaidAmount"
+                        title="Total Fare"
+                        dataIndex="amount"
                         render={(value) => formatCurrency(value)}
-                        sorter={(a: DriverTotal, b: DriverTotal) => a.unpaidAmount - b.unpaidAmount}
+                        sorter={(a: DriverTotal, b: DriverTotal) => a.amount - b.amount}
                     />
                     <Table.Column
                         title="Total Rides"
@@ -334,10 +334,10 @@ export default function ToPay() {
                         Total Drivers: {driverTotals.length}
                     </Text>
                     <Text strong className="text-base mr-5">
-                        Total Unpaid Rides: {totalRides}
+                        Total Rides: {totalRides}
                     </Text>
                     <Text strong className="text-xl mr-5">
-                        Overall Unpaid Total: {formatCurrency(overallTotal)}
+                        Overall Total: {formatCurrency(overallTotal)}
                     </Text>
                     <Button
                         type="primary"
@@ -360,8 +360,8 @@ export default function ToPay() {
                             <div key={driver.driver_id} className="mb-5 p-3 border border-gray-200">
                                 <p><strong>Driver:</strong> {driver.name}</p>
                                 <p><strong>Phone:</strong> {driver.phone_number}</p>
-                                <p><strong>Unpaid Rides:</strong> {driver.rideDetails.filter(ride => ride.payment_status === "not paid").length}</p>
-                                <p><strong>Amount to Pay:</strong> {formatCurrency(driver.unpaidAmount)}</p>
+                                <p><strong>Total Rides:</strong> {driver.rideDetails.length}</p>
+                                <p><strong>Total Amount:</strong> {formatCurrency(driver.amount)}</p>
                             </div>
                         ))}
                     </div>
