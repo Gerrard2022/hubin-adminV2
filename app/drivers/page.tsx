@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Table, Typography, Card, Switch, Modal, message, Button, Tag } from 'antd';
+import { Table, Typography, Card, Switch, Modal, message, Button, Tag, Image } from 'antd';
 import { supabase } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import { EyeOutlined } from '@ant-design/icons';
@@ -18,7 +18,21 @@ interface Driver {
   vehicle: string;
   plate: string;
   total_rides?: number;
+  nationalid?: string;
+  drivingpermit?: string;
 }
+
+// Add this helper function to get the full URL for images
+const getImageUrl = (imagePath: string | null | undefined) => {
+  if (!imagePath) return null;
+  
+  const { data } = supabase
+    .storage
+    .from('drivers-documents')
+    .getPublicUrl(imagePath);
+    
+  return data.publicUrl;
+};
 
 export default function Drivers() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -40,6 +54,7 @@ export default function Drivers() {
         .order('created_at', { ascending: false });
 
       if (driversError) throw driversError;
+      
 
       // Then get ride counts for each driver
       if (driversData) {
@@ -78,13 +93,15 @@ export default function Drivers() {
         )
       );
 
+      // Also update the selected driver if modal is open
+      if (selectedDriver && selectedDriver.id === driverId) {
+        setSelectedDriver(prev => prev ? { ...prev, approved: newStatus } : null);
+      }
+
       const { error } = await supabase
         .from('driver')
-        .update({ 
-          approved: newStatus,
-        })
-        .eq('id', driverId)
-        .select();
+        .update({ approved: newStatus })
+        .eq('id', driverId);
 
       if (error) {
         // Revert the optimistic update if there's an error
@@ -95,14 +112,13 @@ export default function Drivers() {
               : driver
           )
         );
+        if (selectedDriver && selectedDriver.id === driverId) {
+          setSelectedDriver(prev => prev ? { ...prev, approved: !newStatus } : null);
+        }
         throw error;
       }
 
       message.success(`Driver ${newStatus ? 'approved' : 'unapproved'} successfully`);
-      
-      // No need to fetch all drivers again, we already updated the state
-      // Only fetch if you need to sync with other data
-      // await fetchDrivers();
     } catch (error) {
       console.error('Error updating driver status:', error);
       message.error('Failed to update driver status');
@@ -112,6 +128,21 @@ export default function Drivers() {
   const showDriverDetails = (driver: Driver) => {
     setSelectedDriver(driver);
     setModalVisible(true);
+
+    // Add detailed console logs
+    console.log("=== Driver Details ===");
+    console.log("Full Driver Object:", driver);
+    console.log("Legal Name:", driver.legalname);
+    console.log("National ID:", driver.nationalid);
+    console.log("Driving Permit:", driver.drivingpermit);
+    console.log("Phone:", driver.phonenumber);
+    console.log("Email:", driver.email);
+    console.log("Vehicle:", driver.vehicle);
+    console.log("Plate:", driver.plate);
+    console.log("Approval Status:", driver.approved);
+    console.log("Created At:", driver.created_at);
+    console.log("Total Rides:", driver.total_rides);
+    console.log("==================");
   };
 
   const columns = [
@@ -189,14 +220,10 @@ export default function Drivers() {
       key: 'status',
       width: '12%',
       align: 'center' as const,
-      render: (approved: boolean, record: Driver) => (
-        <Switch
-          checked={approved}
-          onChange={(checked) => handleApprovalChange(record.id, checked)}
-          checkedChildren="Approved"
-          unCheckedChildren="Not Approved"
-          style={{ width: 100 }}
-        />
+      render: (approved: boolean) => (
+        <Tag color={approved ? 'success' : 'warning'}>
+          {approved ? 'Approved' : 'Not Approved'}
+        </Tag>
       ),
     },
     {
@@ -210,7 +237,7 @@ export default function Drivers() {
           icon={<EyeOutlined />}
           onClick={() => showDriverDetails(record)}
         >
-          View
+          Edit
         </Button>
       ),
     },
@@ -249,7 +276,7 @@ export default function Drivers() {
               Close
             </Button>
           ]}
-          width={600}
+          width={800}
         >
           {selectedDriver && (
             <div className="space-y-4">
@@ -282,6 +309,36 @@ export default function Drivers() {
                   <Text type="secondary">Total Rides</Text>
                   <div>
                     <Tag color="green">{selectedDriver.total_rides}</Tag>
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <Text type="secondary" className="block mb-2">National ID</Text>
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    {selectedDriver.nationalid ? (
+                      <Image
+                        src={`${selectedDriver.nationalid}`}
+                        alt="National ID"
+                        className="rounded-lg"
+                        style={{ maxHeight: '200px', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <div className="text-gray-500 italic">Not provided</div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <Text type="secondary" className="block mb-2">Driving Permit</Text>
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    {selectedDriver.drivingpermit ? (
+                      <Image
+                        src={`${selectedDriver.drivingpermit}`}
+                        alt="Driving Permit"
+                        className="rounded-lg"
+                        style={{ maxHeight: '200px', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <div className="text-gray-500 italic">Not provided</div>
+                    )}
                   </div>
                 </div>
                 <div>

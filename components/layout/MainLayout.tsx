@@ -3,11 +3,13 @@
 import { Layout, Menu } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   DashboardOutlined,
   UserOutlined,
   CarOutlined,
-  DollarOutlined
+  DollarOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -33,6 +35,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       label: <Link href="/rides">Rides</Link>,
     },
     {
+      key: '/organizations',
+      icon: <TeamOutlined />,
+      label: <Link href="/organizations">Organizations</Link>,
+    },
+    {
       key: '/to-pay',
       icon: <DollarOutlined />,
       label: <Link href="/to-pay">To Pay</Link>,
@@ -40,9 +47,21 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout className="min-h-screen">
       <Sider theme="light">
-        <div style={{ height: 32, margin: 16, background: 'rgba(0, 0, 0, 0.2)' }} />
+        <div className="flex items-center space-x-2 px-4 py-4">
+          <div className="relative w-8 h-8">
+            <Image
+              src="/logo.jpg"
+              alt="Hubin Logo"
+              fill
+              className="object-contain rounded-full"
+            />
+          </div>
+          <span className="font-bold text-black">
+            HUBIN ADMIN
+          </span>
+        </div>
         <Menu
           mode="inline"
           selectedKeys={[pathname]}
@@ -50,11 +69,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         />
       </Sider>
       <Layout>
-        <Header style={{ background: '#fff', padding: 0 }} />
-        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff' }}>
+        <Content className="m-4 p-6 bg-white">
           {children}
         </Content>
       </Layout>
     </Layout>
   );
-} 
+}
