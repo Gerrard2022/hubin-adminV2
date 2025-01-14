@@ -11,14 +11,14 @@ interface Driver {
     id: string;
     legalname: string;
     phonenumber: string;
-    momo_code: string;
+    momo_code: number;
 }
 
 interface DriverTotal {
     driver_id: string;
     name: string;
     phone_number: string;
-    momo_code: string;
+    momo_code: number;
     amount: number;
     rides: string[];
     rideDetails: RideDetail[];
@@ -56,7 +56,7 @@ export default function ToPay() {
                         .from('rides')
                         .select('*')
                         .eq('is_driver_paid', false)
-                        .er('payment_status', 'paid')
+                        .eq('payment_status', 'paid')
                         .range(page * pageSize, (page + 1) * pageSize - 1);
 
                     if (error) throw error;
@@ -106,6 +106,7 @@ export default function ToPay() {
                         driver_id: ride.driver_id,
                         name: driver?.legalname || 'Unknown',
                         phone_number: driver?.phonenumber || 'N/A',
+                        momo_code: driver?.momo_code,
                         amount: 0,
                         unpaidAmount: 0,
                         rides: [],
@@ -117,6 +118,7 @@ export default function ToPay() {
                 if (ride.payment_status === "not paid") {
                     acc[ride.driver_id].unpaidAmount += fareAmount;
                 }
+                
                 acc[ride.driver_id].rides.push(ride.ride_id);
                 acc[ride.driver_id].rideDetails.push({
                     ride_id: ride.ride_id,
@@ -186,34 +188,26 @@ export default function ToPay() {
             message.error("No drivers selected");
             return;
         }
-
+    
         try {
             for (const driver of modalData) {
-                const unpaidRides = driver.rideDetails
-                    .filter(ride => ride.payment_status === "not paid")
-                    .map(ride => ride.ride_id);
-
-                // Update rides status and is_driver_paid
-                for (const rideId of unpaidRides) {
-                    try {
-                        const { error: updateError } = await supabase
-                            .from('rides')
-                            .update({ 
-                                payment_status: 'paid',
-                                is_driver_paid: true 
-                            })
-                            .eq('ride_id', rideId);
-
-                        if (updateError) {
-                            throw updateError;
-                        }
-                        message.success(`Updated ride ${rideId}`);
-                    } catch (error) {
-                        console.error(`Error updating ride ${rideId}:`, error);
-                        throw error;
+                // Update all unpaid rides for the driver in bulk
+                try {
+                    const { error: updateError } = await supabase
+                        .from('rides')
+                        .update({ is_driver_paid: true })
+                        .eq('driver_id', driver.driver_id)
+                        .eq('payment_status', 'paid');
+    
+                    if (updateError) {
+                        throw updateError;
                     }
+                    message.success(`Updated unpaid rides for ${driver.name}`);
+                } catch (error) {
+                    console.error(`Error updating rides for ${driver.name}:`, error);
+                    throw error;
                 }
-
+    
                 // Create paid_drivers record
                 try {
                     const { error: createError } = await supabase
@@ -224,7 +218,7 @@ export default function ToPay() {
                             name: driver.name,
                             amount: driver.unpaidAmount
                         });
-
+    
                     if (createError) {
                         throw createError;
                     }
@@ -234,39 +228,39 @@ export default function ToPay() {
                     throw error;
                 }
             }
-
+    
             message.success("All payments processed successfully!");
             setModalVisible(false);
             setSelectedDrivers([]);
-            
             // Refresh the data with pagination and filter out paid rides
             let allRides: any[] = [];
             let page = 0;
             const pageSize = 1000;
-            
+    
             while (true) {
                 const { data: rides, error } = await supabase
                     .from('rides')
                     .select('*')
                     .eq('is_driver_paid', false) // Only fetch unpaid rides
                     .range(page * pageSize, (page + 1) * pageSize - 1);
-
+    
                 if (error) throw error;
                 if (!rides || rides.length === 0) break;
-                
+    
                 allRides = [...allRides, ...rides];
                 if (rides.length < pageSize) break;
                 page++;
             }
-
+    
             if (allRides.length > 0) {
                 setRidesData(allRides);
             }
-        } catch (error: any) {
+        } catch (error) {
             message.error(error.message || "Error recording payments");
             console.error("Error:", error);
         }
     };
+    
 
     return (
         <MainLayout>
@@ -365,6 +359,7 @@ export default function ToPay() {
                             <div key={driver.driver_id} className="mb-5 p-3 border border-gray-200">
                                 <p><strong>Driver:</strong> {driver.name}</p>
                                 <p><strong>Phone:</strong> {driver.phone_number}</p>
+                                <p><strong>MomoCode:</strong>{driver.momo_code}</p>
                                 <p><strong>Total Rides:</strong> {driver.rideDetails.length}</p>
                                 <p><strong>Total Amount:</strong> {formatCurrency(driver.amount)}</p>
                             </div>
