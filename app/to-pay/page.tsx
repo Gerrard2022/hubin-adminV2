@@ -11,12 +11,14 @@ interface Driver {
     id: string;
     legalname: string;
     phonenumber: string;
+    momo_code: string;
 }
 
 interface DriverTotal {
     driver_id: string;
     name: string;
     phone_number: string;
+    momo_code: string;
     amount: number;
     rides: string[];
     rideDetails: RideDetail[];
@@ -53,7 +55,8 @@ export default function ToPay() {
                     const { data: rides, error } = await supabase
                         .from('rides')
                         .select('*')
-                        .eq('is_driver_paid', false) // Only fetch unpaid rides
+                        .eq('is_driver_paid', false)
+                        .er('payment_status', 'paid')
                         .range(page * pageSize, (page + 1) * pageSize - 1);
 
                     if (error) throw error;
@@ -94,7 +97,8 @@ export default function ToPay() {
 
         const totalsMap = ridesData.reduce((acc, ride) => {
             if (ride.driver_id) {
-                const fareAmount = Number(ride.fare_price) || 0;
+                const fareBeforeAmount = Number(ride.fare_price) || 0;
+                const fareAmount = fareBeforeAmount * 0.85
                 const driver = driversMap[ride.driver_id];
 
                 if (!acc[ride.driver_id]) {
@@ -315,6 +319,7 @@ export default function ToPay() {
                         sorter={(a: DriverTotal, b: DriverTotal) => a.name.localeCompare(b.name)}
                     />
                     <Table.Column title="Phone Number" dataIndex="phone_number" />
+                    <Table.Column title="Momo Code" dataIndex="momo_code" />
                     <Table.Column
                         title="Total Fare"
                         dataIndex="amount"
