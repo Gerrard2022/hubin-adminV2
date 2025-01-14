@@ -56,7 +56,7 @@ export default function ToPay() {
                         .from('rides')
                         .select('*')
                         .eq('is_driver_paid', false)
-                        .er('payment_status', 'paid')
+                        .eq('payment_status', 'paid')
                         .range(page * pageSize, (page + 1) * pageSize - 1);
 
                     if (error) throw error;
@@ -106,6 +106,7 @@ export default function ToPay() {
                         driver_id: ride.driver_id,
                         name: driver?.legalname || 'Unknown',
                         phone_number: driver?.phonenumber || 'N/A',
+                        momo_code: driver?.momo_code,
                         amount: 0,
                         unpaidAmount: 0,
                         rides: [],
