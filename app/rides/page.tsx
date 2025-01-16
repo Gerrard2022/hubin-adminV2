@@ -16,18 +16,26 @@ interface Ride {
   is_completed: boolean;
   payment_status: string;
   driver_id: string;
+  organization: string | null;
   driver?: {
     legalname: string;
     phonenumber: string;
   };
 }
 
+interface Organization {
+  id: string;
+  name: string;
+}
+
 export default function Rides() {
   const [rides, setRides] = useState<Ride[]>([]);
+  const [organizations, setOrganizations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchRides();
+    fetchOrganizations();
   }, []);
 
   const fetchRides = async () => {
@@ -50,6 +58,25 @@ export default function Rides() {
       console.error('Error fetching rides:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOrganizations = async () => {
+    try {
+      const { data: fetchedOrganizations, error } = await supabase
+        .from('organizations')
+        .select('id, name');
+
+      if (error) throw error;
+      if (fetchedOrganizations) {
+        const organizationMap: Record<string, string> = {};
+        fetchedOrganizations.forEach((org: Organization) => {
+          organizationMap[org.id] = org.name;
+        });
+        setOrganizations(organizationMap);
+      }
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
     }
   };
 
@@ -86,6 +113,17 @@ export default function Rides() {
       dataIndex: 'destination_address',
       key: 'destination',
       width: '15%',
+    },
+    {
+      title: 'Organization',
+      dataIndex: 'organization',
+      key: 'organization',
+      render: (orgId: string) =>
+        organizations[orgId] ? (
+          <Text>{organizations[orgId]}</Text>
+        ) : (
+          <Text style={{ fontStyle: 'italic', color: '#ccc' }}>None</Text>
+        ),
     },
     {
       title: 'Date',

@@ -82,7 +82,7 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <div className="p-6">
+      <div className="h-screen flex flex-col p-6">
         <Row gutter={[24, 24]}>
           <Col xs={24} sm={8}>
             <DashboardTotalCountCard
