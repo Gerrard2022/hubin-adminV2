@@ -101,7 +101,7 @@ export const RideChart = () => {
       },
     },
     tooltip: {
-      formatter: (data) => {
+      formatter: (data: { state: string; value: number }) => {
         return {
           name: data.state,
           value:
