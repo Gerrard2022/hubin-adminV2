@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import Image from 'next/image';
-import { Modal, Button, Form, Input, Select, Upload, Table, message } from 'antd';
+import { Modal, Button, Form, Input, Select, Upload, Table, message, Popconfirm } from 'antd';
 import { UploadOutlined, PlusOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 
@@ -22,6 +22,7 @@ export default function Organizations() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -74,16 +75,64 @@ export default function Organizations() {
     }
   };
 
+  const handleEdit = (organization: Organization) => {
+    setEditingOrg(organization);
+    form.setFieldsValue({
+      name: organization.name,
+      owner: organization.owner,
+      type: organization.type,
+    });
+    if (organization.image) {
+      setFileList([
+        {
+          uid: '-1',
+          name: 'image.png',
+          status: 'done',
+          url: organization.image,
+        },
+      ]);
+    }
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      message.success('Organization deleted successfully');
+      fetchOrganizationsWithRevenue();
+    } catch (error) {
+      console.error('Error deleting organization:', error);
+      message.error('Failed to delete organization');
+    }
+  };
+
   const handleSubmit = async (values: any) => {
     setSubmitting(true);
     try {
-      let imageUrl = '';
+      let imageUrl = editingOrg?.image || '';
 
+      // Handle image upload if there's a new file
       if (fileList[0]?.originFileObj) {
         const file = fileList[0].originFileObj;
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         
+        // Delete old image if exists and uploading new one
+        if (editingOrg?.image) {
+          const oldImagePath = editingOrg.image.split('/').pop();
+          if (oldImagePath) {
+            await supabase.storage
+              .from('organizations')
+              .remove([oldImagePath]);
+          }
+        }
+
         const { error: uploadError, data } = await supabase.storage
           .from('organizations')
           .upload(fileName, file);
@@ -97,21 +146,39 @@ export default function Organizations() {
         imageUrl = publicUrl;
       }
 
-      const { error } = await supabase.from('organizations').insert([{
-        name: values.name,
-        owner: values.owner,
-        type: values.type,
-        image: imageUrl || null
-      }]);
+      if (editingOrg) {
+        // Update existing organization
+        const { error } = await supabase
+          .from('organizations')
+          .update({
+            name: values.name,
+            owner: values.owner,
+            image: imageUrl || null
+          })
+          .eq('id', editingOrg.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        message.success('Organization updated successfully');
+      } else {
+        // Create new organization
+        const { error } = await supabase
+          .from('organizations')
+          .insert([{
+            name: values.name,
+            owner: values.owner,
+            type: values.type,
+            image: imageUrl || null
+          }]);
 
-      message.success('Organization created successfully');
+        if (error) throw error;
+        message.success('Organization created successfully');
+      }
+
       handleModalClose();
       fetchOrganizationsWithRevenue();
     } catch (error) {
-      console.error('Error creating organization:', error);
-      message.error('Failed to create organization');
+      console.error('Error saving organization:', error);
+      message.error(`Failed to ${editingOrg ? 'update' : 'create'} organization`);
     } finally {
       setSubmitting(false);
     }
@@ -119,6 +186,7 @@ export default function Organizations() {
 
   const handleModalClose = () => {
     setModalOpen(false);
+    setEditingOrg(null);
     form.resetFields();
     setFileList([]);
   };
@@ -174,8 +242,16 @@ export default function Organizations() {
       key: 'actions',
       render: (record: Organization) => (
         <span>
-          <Button type="link" onClick={() => console.log('Edit')}>Edit</Button>
-          <Button type="link" danger onClick={() => console.log('Delete')}>Delete</Button>
+          <Button type="link" onClick={() => handleEdit(record)}>Edit</Button>
+          <Popconfirm
+            title="Delete organization"
+            description="Are you sure you want to delete this organization?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button type="link" danger>Delete</Button>
+          </Popconfirm>
         </span>
       )
     }
@@ -206,7 +282,7 @@ export default function Organizations() {
         </div>
 
         <Modal
-          title="Create Organization"
+          title={editingOrg ? "Edit Organization" : "Create Organization"}
           open={modalOpen}
           onCancel={handleModalClose}
           footer={null}
@@ -252,25 +328,27 @@ export default function Organizations() {
               <Input />
             </Form.Item>
 
-            <Form.Item
-              label="Organization Type"
-              name="type"
-              rules={[{ required: true, message: 'Please select organization type!' }]}
-              initialValue="business"
-            >
-              <Select>
-                <Select.Option value="business">Business</Select.Option>
-                <Select.Option value="nonprofit">Non-Profit</Select.Option>
-                <Select.Option value="government">Government</Select.Option>
-              </Select>
-            </Form.Item>
+            {!editingOrg && (
+              <Form.Item
+                label="Organization Type"
+                name="type"
+                rules={[{ required: true, message: 'Please select organization type!' }]}
+                initialValue="business"
+              >
+                <Select>
+                  <Select.Option value="business">Business</Select.Option>
+                  <Select.Option value="nonprofit">Non-Profit</Select.Option>
+                  <Select.Option value="government">Government</Select.Option>
+                </Select>
+              </Form.Item>
+            )}
 
             <Form.Item className="flex justify-end space-x-2">
               <Button onClick={handleModalClose}>
                 Cancel
               </Button>
               <Button type="primary" htmlType="submit" loading={submitting}>
-                Create Organization
+                {editingOrg ? 'Update' : 'Create'} Organization
               </Button>
             </Form.Item>
           </Form>
