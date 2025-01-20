@@ -12,6 +12,7 @@
     "@ant-design/charts": "^2.2.6",
     "@ant-design/plots": "^2.3.3",
     "@antv/g2plot": "^2.4.32",
+    "@clerk/nextjs": "^6.9.14",
     "@supabase/supabase-js": "^2.47.12",
     "antd": "^5.23.0",
     "lucide-react": "^0.471.0",
