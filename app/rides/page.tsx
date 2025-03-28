@@ -9,23 +9,23 @@ const { Text, Title } = Typography;
 
 interface Ride {
   ride_id: string;
-  destination_address: string;
-  origin_address: string;
-  created_at: string;
-  fare_price: number;
+  DestinationAddress: string;
+  OriginAddress: string;
+  CreatedAt: string;
+  FarePrice: number;
   is_completed: boolean;
-  payment_status: string;
-  driver_id: string;
-  organization: string | null;
-  driver?: {
-    legalname: string;
-    phonenumber: string;
+  PaymentStatus: string;
+  DriverId: string;
+  Organization: string | null;
+  Driver?: {
+    LegalName: string;
+    PhoneNumber: string;
   };
 }
 
 interface Organization {
   id: string;
-  name: string;
+  Name: string;
 }
 
 export default function Rides() {
@@ -42,15 +42,15 @@ export default function Rides() {
     try {
       setLoading(true);
       const { data: fetchedRides, error } = await supabase
-        .from('rides')
+        .from('Rides')
         .select(`
           *,
-          driver:driver_id (
-            legalname,
-            phonenumber
+          Driver:DriverId (
+            LegalName,
+            PhoneNumber
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('CreatedAt', { ascending: false });
 
       if (error) throw error;
       if (fetchedRides) setRides(fetchedRides);
@@ -64,14 +64,14 @@ export default function Rides() {
   const fetchOrganizations = async () => {
     try {
       const { data: fetchedOrganizations, error } = await supabase
-        .from('organizations')
-        .select('id, name');
+        .from('Organizations')
+        .select('id, Name');
 
       if (error) throw error;
       if (fetchedOrganizations) {
         const organizationMap: Record<string, string> = {};
         fetchedOrganizations.forEach((org: Organization) => {
-          organizationMap[org.id] = org.name;
+          organizationMap[org.id] = org.Name;
         });
         setOrganizations(organizationMap);
       }
@@ -92,31 +92,31 @@ export default function Rides() {
   const columns = [
     {
       title: 'Driver',
-      dataIndex: ['driver', 'legalname'],
+      dataIndex: ['Driver', 'LegalName'],
       key: 'driver',
       render: (text: string) => <Text>{text || 'N/A'}</Text>,
     },
     {
       title: 'Phone Number',
-      dataIndex: ['driver', 'phonenumber'],
+      dataIndex: ['Driver', 'PhoneNumber'],
       key: 'phone',
       render: (text: string) => <Text>{text || 'N/A'}</Text>,
     },
     {
       title: 'From',
-      dataIndex: 'origin_address',
+      dataIndex: 'OriginAddress',
       key: 'origin',
       width: '15%',
     },
     {
       title: 'To',
-      dataIndex: 'destination_address',
+      dataIndex: 'DestinationAddress',
       key: 'destination',
       width: '15%',
     },
     {
       title: 'Organization',
-      dataIndex: 'organization',
+      dataIndex: 'Organization',
       key: 'organization',
       render: (orgId: string) =>
         organizations[orgId] ? (
@@ -127,19 +127,19 @@ export default function Rides() {
     },
     {
       title: 'Date',
-      dataIndex: 'created_at',
+      dataIndex: 'CreatedAt',
       key: 'date',
       render: (text: string) => new Date(text).toLocaleDateString(),
     },
     {
       title: 'Amount',
-      dataIndex: 'fare_price',
+      dataIndex: 'FarePrice',
       key: 'fare',
       render: (amount: number) => formatCurrency(amount),
     },
     {
       title: 'Status',
-      dataIndex: 'is_completed',
+      dataIndex: 'IsCompleted',
       key: 'status',
       width: '100px',
       align: 'center' as const,
@@ -159,7 +159,7 @@ export default function Rides() {
     },
     {
       title: 'Payment',
-      dataIndex: 'payment_status',
+      dataIndex: 'PaymentStatus',
       key: 'payment',
       width: '100px',
       align: 'center' as const,

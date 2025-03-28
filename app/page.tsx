@@ -8,6 +8,7 @@ import DashboardTotalCountCard from '@/components/dashboard/DashboardTotalCountC
 import RecentRides from '@/components/dashboard/RecentRides';
 import RideChart from '@/components/dashboard/RideChart';
 import { supabase } from '@/lib/supabase';
+import { log } from 'console';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -32,25 +33,25 @@ export default function Dashboard() {
 
       // Fetch rides
       const { data: currentRides } = await supabase
-        .from('rides')
-        .select('fare_price')
-        .gte('created_at', firstDayOfMonth.toISOString());
+        .from('Rides')
+        .select('FarePrice')
+        .gte('CreatedAt', firstDayOfMonth.toISOString());
 
       const { data: lastMonthRides } = await supabase
-        .from('rides')
-        .select('fare_price')
-        .gte('created_at', firstDayOfLastMonth.toISOString())
-        .lt('created_at', firstDayOfMonth.toISOString());
+        .from('Rides')
+        .select('FarePrice')
+        .gte('CreatedAt', firstDayOfLastMonth.toISOString())
+        .lt('CreatedAt', firstDayOfMonth.toISOString());
 
       // Fetch drivers
       const { count: currentDrivers } = await supabase
-        .from('driver')
+        .from('Driver')
         .select('*', { count: 'exact' });
 
       const { count: lastMonthDrivers } = await supabase
-        .from('driver')
+        .from('Driver')
         .select('*', { count: 'exact' })
-        .lt('created_at', firstDayOfMonth.toISOString());
+        .lt('CreatedAt', firstDayOfMonth.toISOString());
 
       // Calculate growth percentages
       const rideGrowth = lastMonthRides?.length 
@@ -61,8 +62,8 @@ export default function Dashboard() {
         ? ((currentDrivers || 0) - lastMonthDrivers) / lastMonthDrivers * 100 
         : 0;
 
-      const currentRevenue = currentRides?.reduce((sum, ride) => sum + (ride.fare_price || 0), 0) || 0;
-      const lastMonthRevenue = lastMonthRides?.reduce((sum, ride) => sum + (ride.fare_price || 0), 0) || 0;
+      const currentRevenue = currentRides?.reduce((sum, ride) => sum + (ride.FarePrice || 0), 0) || 0;
+      const lastMonthRevenue = lastMonthRides?.reduce((sum, ride) => sum + (ride.FarePrice || 0), 0) || 0;
       const revenueGrowth = lastMonthRevenue 
         ? (currentRevenue - lastMonthRevenue) / lastMonthRevenue * 100 
         : 0;
@@ -75,6 +76,7 @@ export default function Dashboard() {
         driverGrowth,
         revenueGrowth,
       });
+      console.log("total drivers", currentDrivers)
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
     }

@@ -7,10 +7,10 @@ import { supabase } from '@/lib/supabase';
 const { Title } = Typography;
 
 interface RecentRide {
-  ride_id: string;
-  fare_price: number;
-  created_at: string;
-  payment_status: string;
+  RideId: string;
+  FarePrice: number;
+  CreatedAt: string;
+  PaymentStatus: string;
 }
 
 export default function RecentRides() {
@@ -24,9 +24,9 @@ export default function RecentRides() {
   const fetchRecentRides = async () => {
     try {
       const { data, error } = await supabase
-        .from('rides')
-        .select('ride_id, fare_price, created_at, payment_status')
-        .order('created_at', { ascending: false })
+        .from('Rides')
+        .select('RideId, FarePrice, CreatedAt, PaymentStatus')
+        .order('CreatedAt', { ascending: false })
         .limit(5);
 
       if (error) throw error;
@@ -53,13 +53,13 @@ export default function RecentRides() {
   const columns = [
     {
       title: 'Amount',
-      dataIndex: 'fare_price',
+      dataIndex: 'FarePrice',
       key: 'amount',
       render: (value: number) => formatCurrency(value),
     },
     {
       title: 'Status',
-      dataIndex: 'payment_status',
+      dataIndex: 'PaymentStatus',
       key: 'status',
       render: (status: string) => (
         <Tag color={status === 'paid' ? 'success' : 'warning'}>
@@ -75,7 +75,7 @@ export default function RecentRides() {
       <Table
         columns={columns}
         dataSource={rides}
-        rowKey="ride_id"
+        rowKey="RideId"
         loading={loading}
         pagination={false}
         size="small"

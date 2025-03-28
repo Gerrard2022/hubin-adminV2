@@ -9,17 +9,17 @@ const { Text } = Typography;
 
 interface Driver {
     id: string;
-    legalname: string;
-    phonenumber: string;
-    momo_code: number;
+    LegalName: string;
+    PhoneNumber: string;
+    MomoCode: number;
 }
 
 interface DriverTotal {
-    driver_id: string;
-    name: string;
-    phone_number: string;
-    momo_code: number;
-    amount: number;
+    DriverId: string;
+    Name: string;
+    PhoneNumber: string;
+    MomoCode: number;
+    Amount: number;
     rides: string[];
     rideDetails: RideDetail[];
     unpaidAmount: number;
@@ -53,10 +53,10 @@ export default function ToPay() {
                 
                 while (true) {
                     const { data: rides, error } = await supabase
-                        .from('rides')
+                        .from('Rides')
                         .select('*')
-                        .eq('is_driver_paid', false)
-                        .eq('payment_status', 'paid')
+                        .eq('IsDriverPaid', false)
+                        .eq('PaymentStatus', 'paid')
                         .range(page * pageSize, (page + 1) * pageSize - 1);
 
                     if (error) throw error;
@@ -68,7 +68,7 @@ export default function ToPay() {
                 }
 
                 const { data: drivers, error: driversError } = await supabase
-                    .from('driver')
+                    .from('Driver')
                     .select('*');
 
                 if (driversError) throw driversError;
@@ -96,17 +96,17 @@ export default function ToPay() {
         }, {});
 
         const totalsMap = ridesData.reduce((acc, ride) => {
-            if (ride.driver_id) {
-                const fareBeforeAmount = Number(ride.fare_price) || 0;
+            if (ride.DriverId) {
+                const fareBeforeAmount = Number(ride.FarePrice) || 0;
                 const fareAmount = fareBeforeAmount * 0.85
-                const driver = driversMap[ride.driver_id];
+                const driver = driversMap[ride.DriverId];
 
-                if (!acc[ride.driver_id]) {
-                    acc[ride.driver_id] = {
-                        driver_id: ride.driver_id,
-                        name: driver?.legalname || 'Unknown',
-                        phone_number: driver?.phonenumber || 'N/A',
-                        momo_code: driver?.momo_code,
+                if (!acc[ride.DriverId]) {
+                    acc[ride.DriverId] = {
+                        driver_id: ride.DriverId,
+                        name: driver?.LegalName || 'Unknown',
+                        phone_number: driver?.PhoneNumber || 'N/A',
+                        momo_code: driver?.MomoCode,
                         amount: 0,
                         unpaidAmount: 0,
                         rides: [],
@@ -114,19 +114,19 @@ export default function ToPay() {
                     };
                 }
 
-                acc[ride.driver_id].amount += fareAmount;
-                if (ride.payment_status === "not paid") {
-                    acc[ride.driver_id].unpaidAmount += fareAmount;
+                acc[ride.DriverId].amount += fareAmount;
+                if (ride.PaymentStatus === "not paid") {
+                    acc[ride.DriverId].unpaidAmount += fareAmount;
                 }
                 
-                acc[ride.driver_id].rides.push(ride.ride_id);
-                acc[ride.driver_id].rideDetails.push({
-                    ride_id: ride.ride_id,
+                acc[ride.DriverId].rides.push(ride.ride_id);
+                acc[ride.DriverId].rideDetails.push({
+                    ride_id: ride.RideId,
                     fare: fareAmount,
-                    origin: ride.origin_address,
-                    destination: ride.destination_address,
+                    origin: ride.OriginAddress,
+                    destination: ride.DestinationAddress,
                     date: new Date(ride.created_at).toLocaleDateString(),
-                    payment_status: ride.payment_status
+                    payment_status: ride.PaymentStatus
                 });
             }
             return acc;
@@ -161,17 +161,17 @@ export default function ToPay() {
         .trim();
     };
 
-    const handleCheckboxChange = (driver_id: string, checked: boolean) => {
+    const handleCheckboxChange = (DriverId: string, checked: boolean) => {
         if (checked) {
-            setSelectedDrivers((prev) => [...prev, driver_id]);
+            setSelectedDrivers((prev) => [...prev, DriverId]);
         } else {
-            setSelectedDrivers((prev) => prev.filter((id) => id !== driver_id));
+            setSelectedDrivers((prev) => prev.filter((id) => id !== DriverId));
         }
     };
 
     const handleSendToPaidDrivers = () => {
         const selectedDriversData = driverTotals.filter((driver) =>
-            selectedDrivers.includes(driver.driver_id)
+            selectedDrivers.includes(driver.DriverId)
         );
 
         if (selectedDriversData.length === 0) {
@@ -194,37 +194,37 @@ export default function ToPay() {
                 // Update all unpaid rides for the driver in bulk
                 try {
                     const { error: updateError } = await supabase
-                        .from('rides')
-                        .update({ is_driver_paid: true })
-                        .eq('driver_id', driver.driver_id)
-                        .eq('payment_status', 'paid');
+                        .from('Rides')
+                        .update({ IsDriverPaid: true })
+                        .eq('DriverId', driver.DriverId)
+                        .eq('PaymentStatus', 'paid');
     
                     if (updateError) {
                         throw updateError;
                     }
-                    message.success(`Updated unpaid rides for ${driver.name}`);
+                    message.success(`Updated unpaid rides for ${driver.Name}`);
                 } catch (error) {
-                    console.error(`Error updating rides for ${driver.name}:`, error);
+                    console.error(`Error updating rides for ${driver.Name}:`, error);
                     throw error;
                 }
     
                 // Create paid_drivers record
                 try {
                     const { error: createError } = await supabase
-                        .from('paid_drivers')
+                        .from('PaidDrivers')
                         .insert({
-                            phone_number: driver.phone_number,
-                            driver_id: driver.driver_id,
-                            name: driver.name,
-                            amount: driver.unpaidAmount
+                            PhoneNumber: driver.PhoneNumber,
+                            DriverId: driver.DriverId,
+                            Name: driver.Name,
+                            Amount: driver.unpaidAmount
                         });
     
                     if (createError) {
                         throw createError;
                     }
-                    message.success(`Payment record created for ${driver.name}`);
+                    message.success(`Payment record created for ${driver.Name}`);
                 } catch (error) {
-                    console.error(`Error creating paid driver record for ${driver.name}:`, error);
+                    console.error(`Error creating paid driver record for ${driver.Name}:`, error);
                     throw error;
                 }
             }
@@ -239,9 +239,9 @@ export default function ToPay() {
     
             while (true) {
                 const { data: rides, error } = await supabase
-                    .from('rides')
+                    .from('Rides')
                     .select('*')
-                    .eq('is_driver_paid', false) // Only fetch unpaid rides
+                    .eq('IsDriverPaid', false) // Only fetch unpaid rides
                     .range(page * pageSize, (page + 1) * pageSize - 1);
     
                 if (error) throw error;
@@ -269,7 +269,7 @@ export default function ToPay() {
                     dataSource={driverTotals}
                     loading={loading}
                     pagination={{ pageSize: 12 }}
-                    rowKey="driver_id"
+                    rowKey="DriverId"
                     expandable={{
                         expandedRowRender: (record) => (
                             <Table
@@ -287,7 +287,7 @@ export default function ToPay() {
                                 />
                                 <Table.Column
                                     title="Status"
-                                    dataIndex="payment_status"
+                                    dataIndex="PaymentStatus"
                                     render={(status) => (
                                         <Text type={status === "paid" ? "success" : "warning"}>
                                             {status}
@@ -302,23 +302,23 @@ export default function ToPay() {
                         title="Select"
                         render={(text, record: DriverTotal) => (
                             <Checkbox
-                                onChange={(e) => handleCheckboxChange(record.driver_id, e.target.checked)}
-                                checked={selectedDrivers.includes(record.driver_id)}
+                                onChange={(e) => handleCheckboxChange(record.DriverId, e.target.checked)}
+                                checked={selectedDrivers.includes(record.DriverId)}
                             />
                         )}
                     />
                     <Table.Column
                         title="Driver Name"
                         dataIndex="name"
-                        sorter={(a: DriverTotal, b: DriverTotal) => a.name.localeCompare(b.name)}
+                        sorter={(a: DriverTotal, b: DriverTotal) => a.Name.localeCompare(b.Name)}
                     />
-                    <Table.Column title="Phone Number" dataIndex="phone_number" />
-                    <Table.Column title="Momo Code" dataIndex="momo_code" />
+                    <Table.Column title="Phone Number" dataIndex="PhoneNumber" />
+                    <Table.Column title="Momo Code" dataIndex="MomoCode" />
                     <Table.Column
                         title="Total Fare"
                         dataIndex="amount"
                         render={(value) => formatCurrency(value)}
-                        sorter={(a: DriverTotal, b: DriverTotal) => a.amount - b.amount}
+                        sorter={(a: DriverTotal, b: DriverTotal) => a.Amount - b.Amount}
                     />
                     <Table.Column
                         title="Total Rides"
@@ -356,12 +356,12 @@ export default function ToPay() {
                 >
                     <div>
                         {modalData && modalData.map((driver) => (
-                            <div key={driver.driver_id} className="mb-5 p-3 border border-gray-200">
-                                <p><strong>Driver:</strong> {driver.name}</p>
-                                <p><strong>Phone:</strong> {driver.phone_number}</p>
-                                <p><strong>MomoCode:</strong>{driver.momo_code}</p>
+                            <div key={driver.DriverId} className="mb-5 p-3 border border-gray-200">
+                                <p><strong>Driver:</strong> {driver.Name}</p>
+                                <p><strong>Phone:</strong> {driver.PhoneNumber}</p>
+                                <p><strong>MomoCode:</strong>{driver.MomoCode}</p>
                                 <p><strong>Total Rides:</strong> {driver.rideDetails.length}</p>
-                                <p><strong>Total Amount:</strong> {formatCurrency(driver.amount)}</p>
+                                <p><strong>Total Amount:</strong> {formatCurrency(driver.Amount)}</p>
                             </div>
                         ))}
                     </div>

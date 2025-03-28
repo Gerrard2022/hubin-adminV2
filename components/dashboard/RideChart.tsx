@@ -23,15 +23,15 @@ export const RideChart = () => {
   const fetchRides = async () => {
     try {
       const { data: rides, error } = await supabase
-        .from('rides')
-        .select('created_at, fare_price')
-        .order('created_at', { ascending: true });
+        .from('Rides')
+        .select('CreatedAt, FarePrice')
+        .order('CreatedAt', { ascending: true });
 
       if (error) throw error;
 
       // Group rides by month
       const monthlyData = (rides || []).reduce((acc: Record<string, { rides: number, revenue: number }>, ride) => {
-        const month = new Date(ride.created_at).toLocaleString("default", {
+        const month = new Date(ride.CreatedAt).toLocaleString("default", {
           month: "short",
         });
         
@@ -40,7 +40,7 @@ export const RideChart = () => {
         }
         
         acc[month].rides += 1;
-        acc[month].revenue += Number(ride.fare_price) || 0;
+        acc[month].revenue += Number(ride.FarePrice) || 0;
         
         return acc;
       }, {});

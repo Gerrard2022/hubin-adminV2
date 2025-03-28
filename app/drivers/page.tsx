@@ -5,21 +5,22 @@ import { Table, Typography, Card, Switch, Modal, message, Button, Tag, Image } f
 import { supabase } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import { EyeOutlined } from '@ant-design/icons';
+import { log } from 'console';
 
 const { Text, Title } = Typography;
 
 interface Driver {
   id: string;
-  legalname: string;
-  phonenumber: string;
-  email: string;
-  approved: boolean;
-  created_at: string;
-  vehicle: string;
-  plate: string;
+  LegalName: string;
+  PhoneNumber: string;
+  Email: string;
+  Approved: boolean;
+  CreatedAt: string;
+  Vehicle: string;
+  Plate: string;
   total_rides?: number;
-  nationalid?: string;
-  drivingpermit?: string;
+  NationalId?: string;
+  DrivingPermit?: string;
 }
 
 // Add this helper function to get the full URL for images
@@ -49,9 +50,11 @@ export default function Drivers() {
       setLoading(true);
       // First get all drivers
       const { data: driversData, error: driversError } = await supabase
-        .from('driver')
+        .from('Driver')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('CreatedAt', { ascending: false });
+
+        console.timeLog("DRIVERS", driversData)
 
       if (driversError) throw driversError;
       
@@ -61,9 +64,9 @@ export default function Drivers() {
         const driversWithCounts = await Promise.all(
           driversData.map(async (driver) => {
             const { count } = await supabase
-              .from('rides')
+              .from('Rides')
               .select('*', { count: 'exact' })
-              .eq('driver_id', driver.id);
+              .eq('DriverId', driver.id);
 
             return {
               ...driver,
@@ -88,7 +91,7 @@ export default function Drivers() {
       setDrivers(currentDrivers => 
         currentDrivers.map(driver => 
           driver.id === driverId 
-            ? { ...driver, approved: newStatus }
+            ? { ...driver, Approved: newStatus }
             : driver
         )
       );
@@ -99,8 +102,8 @@ export default function Drivers() {
       }
 
       const { error } = await supabase
-        .from('driver')
-        .update({ approved: newStatus })
+        .from('Driver')
+        .update({ Approved: newStatus })
         .eq('id', driverId);
 
       if (error) {
@@ -108,12 +111,12 @@ export default function Drivers() {
         setDrivers(currentDrivers => 
           currentDrivers.map(driver => 
             driver.id === driverId 
-              ? { ...driver, approved: !newStatus }
+              ? { ...driver, Approved: !newStatus }
               : driver
           )
         );
         if (selectedDriver && selectedDriver.id === driverId) {
-          setSelectedDriver(prev => prev ? { ...prev, approved: !newStatus } : null);
+          setSelectedDriver(prev => prev ? { ...prev, aAproved: !newStatus } : null);
         }
         throw error;
       }
@@ -132,15 +135,15 @@ export default function Drivers() {
     // Add detailed console logs
     console.log("=== Driver Details ===");
     console.log("Full Driver Object:", driver);
-    console.log("Legal Name:", driver.legalname);
-    console.log("National ID:", driver.nationalid);
-    console.log("Driving Permit:", driver.drivingpermit);
-    console.log("Phone:", driver.phonenumber);
-    console.log("Email:", driver.email);
-    console.log("Vehicle:", driver.vehicle);
-    console.log("Plate:", driver.plate);
-    console.log("Approval Status:", driver.approved);
-    console.log("Created At:", driver.created_at);
+    console.log("Legal Name:", driver.LegalName);
+    console.log("National ID:", driver.NationalId);
+    console.log("Driving Permit:", driver.DrivingPermit);
+    console.log("Phone:", driver.PhoneNumber);
+    console.log("Email:", driver.Email);
+    console.log("Vehicle:", driver.Vehicle);
+    console.log("Plate:", driver.Plate);
+    console.log("Approval Status:", driver.Approved);
+    console.log("Created At:", driver.CreatedAt);
     console.log("Total Rides:", driver.total_rides);
     console.log("==================");
   };
@@ -148,7 +151,7 @@ export default function Drivers() {
   const columns = [
     {
       title: 'Name',
-      dataIndex: 'legalname',
+      dataIndex: 'LegalName',
       key: 'name',
       width: '20%',
       ellipsis: true,
@@ -167,14 +170,14 @@ export default function Drivers() {
     },
     {
       title: 'Phone',
-      dataIndex: 'phonenumber',
+      dataIndex: 'PhoneNumber',
       key: 'phone',
       width: '15%',
       ellipsis: true,
     },
     {
       title: 'Email',
-      dataIndex: 'email',
+      dataIndex: 'Email',
       key: 'email',
       width: '20%',
       ellipsis: true,
@@ -192,7 +195,7 @@ export default function Drivers() {
     },
     {
       title: 'Car Type',
-      dataIndex: 'vehicle',
+      dataIndex: 'Vehicle',
       key: 'vehicle',
       width: '12%',
       align: 'center' as const,
@@ -200,7 +203,7 @@ export default function Drivers() {
     },
     {
       title: 'Car Number',
-      dataIndex: 'plate',
+      dataIndex: 'Plate',
       key: 'plate',
       width: '12%',
       align: 'center' as const,
@@ -216,7 +219,7 @@ export default function Drivers() {
     },
     {
       title: 'Status',
-      dataIndex: 'approved',
+      dataIndex: 'Approved',
       key: 'status',
       width: '12%',
       align: 'center' as const,
@@ -283,26 +286,26 @@ export default function Drivers() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Text type="secondary">Name</Text>
-                  <div className="font-medium">{selectedDriver.legalname}</div>
+                  <div className="font-medium">{selectedDriver.LegalName}</div>
                 </div>
                 <div>
                   <Text type="secondary">Phone</Text>
-                  <div className="font-medium">{selectedDriver.phonenumber}</div>
+                  <div className="font-medium">{selectedDriver.PhoneNumber}</div>
                 </div>
                 <div>
                   <Text type="secondary">Email</Text>
-                  <div className="font-medium">{selectedDriver.email}</div>
+                  <div className="font-medium">{selectedDriver.Email}</div>
                 </div>
                 <div>
                   <Text type="secondary">Car Type</Text>
                   <div>
-                    <Tag color="blue">{selectedDriver.vehicle}</Tag>
+                    <Tag color="blue">{selectedDriver.Vehicle}</Tag>
                   </div>
                 </div>
                 <div>
                   <Text type="secondary">Car Number</Text>
                   <div>
-                    <Tag color="purple">{selectedDriver.plate}</Tag>
+                    <Tag color="purple">{selectedDriver.Plate}</Tag>
                   </div>
                 </div>
                 <div>
@@ -314,9 +317,9 @@ export default function Drivers() {
                 <div className="col-span-2">
                   <Text type="secondary" className="block mb-2">National ID</Text>
                   <div className="border rounded-lg p-4 bg-gray-50">
-                    {selectedDriver.nationalid ? (
+                    {selectedDriver.NationalId ? (
                       <Image
-                        src={`${selectedDriver.nationalid}`}
+                        src={`${selectedDriver.NationalId}`}
                         alt="National ID"
                         className="rounded-lg"
                         style={{ maxHeight: '200px', objectFit: 'contain' }}
@@ -329,9 +332,9 @@ export default function Drivers() {
                 <div className="col-span-2">
                   <Text type="secondary" className="block mb-2">Driving Permit</Text>
                   <div className="border rounded-lg p-4 bg-gray-50">
-                    {selectedDriver.drivingpermit ? (
+                    {selectedDriver.DrivingPermit ? (
                       <Image
-                        src={`${selectedDriver.drivingpermit}`}
+                        src={`${selectedDriver.DrivingPermit}`}
                         alt="Driving Permit"
                         className="rounded-lg"
                         style={{ maxHeight: '200px', objectFit: 'contain' }}
@@ -345,7 +348,7 @@ export default function Drivers() {
                   <Text type="secondary">Status</Text>
                   <div>
                     <Switch
-                      checked={selectedDriver.approved}
+                      checked={selectedDriver.Approved}
                       onChange={(checked) => handleApprovalChange(selectedDriver.id, checked)}
                       checkedChildren="Approved"
                       unCheckedChildren="Not Approved"
@@ -355,7 +358,7 @@ export default function Drivers() {
                 <div>
                   <Text type="secondary">Joined Date</Text>
                   <div className="font-medium">
-                    {new Date(selectedDriver.created_at).toLocaleDateString()}
+                    {new Date(selectedDriver.CreatedAt).toLocaleDateString()}
                   </div>
                 </div>
               </div>
