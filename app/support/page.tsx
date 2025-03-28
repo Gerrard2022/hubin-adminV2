@@ -135,7 +135,7 @@ export default function SupportRequests() {
           icon={<EyeOutlined />}
           onClick={() => showRequestDetails(record)}
         >
-          View
+          Edit
         </Button>
       ),
     },
