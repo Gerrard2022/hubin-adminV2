@@ -10,7 +10,7 @@ import {
   CarOutlined,
   CopyOutlined
 } from '@ant-design/icons';
-import { TreePalm } from 'lucide-react';
+import { TreePalm, Users } from 'lucide-react';
 import { UserButton, SignedIn, useUser } from "@clerk/nextjs";
 
 const { Sider, Content } = Layout;
@@ -25,6 +25,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       key: '/',
       icon: <DashboardOutlined />,
       label: <Link href="/">Dashboard</Link>,
+    },
+    {
+      key: '/support',
+      icon: <Users />,
+      label: <Link href="/support">Support Requests</Link>,
     },
     {
       key: '/drivers',
