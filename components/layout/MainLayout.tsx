@@ -8,9 +8,7 @@ import {
   DashboardOutlined,
   UserOutlined,
   CarOutlined,
-  DollarOutlined,
-  TeamOutlined,
-  LogoutOutlined
+  CopyOutlined
 } from '@ant-design/icons';
 import { UserButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 
@@ -38,15 +36,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       label: <Link href="/rides">Rides</Link>,
     },
     {
-      key: '/organizations',
-      icon: <TeamOutlined />,
-      label: <Link href="/organizations">Organizations</Link>,
+      key: '/insurances',
+      icon: <CopyOutlined />,
+      label: <Link href="/insurances">Insurances</Link>,
     },
-    {
-      key: '/to-pay',
-      icon: <DollarOutlined />,
-      label: <Link href="/to-pay">To Pay</Link>,
-    }
   ];
 
   return (

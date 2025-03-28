@@ -131,21 +131,6 @@ export default function Drivers() {
   const showDriverDetails = (driver: Driver) => {
     setSelectedDriver(driver);
     setModalVisible(true);
-
-    // Add detailed console logs
-    console.log("=== Driver Details ===");
-    console.log("Full Driver Object:", driver);
-    console.log("Legal Name:", driver.LegalName);
-    console.log("National ID:", driver.NationalId);
-    console.log("Driving Permit:", driver.DrivingPermit);
-    console.log("Phone:", driver.PhoneNumber);
-    console.log("Email:", driver.Email);
-    console.log("Vehicle:", driver.Vehicle);
-    console.log("Plate:", driver.Plate);
-    console.log("Approval Status:", driver.Approved);
-    console.log("Created At:", driver.CreatedAt);
-    console.log("Total Rides:", driver.total_rides);
-    console.log("==================");
   };
 
   const columns = [
