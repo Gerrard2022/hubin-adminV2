@@ -10,9 +10,10 @@ import {
   CarOutlined,
   CopyOutlined
 } from '@ant-design/icons';
-import { UserButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
+import { TreePalm } from 'lucide-react';
+import { UserButton, SignedIn, useUser } from "@clerk/nextjs";
 
-const { Header, Sider, Content } = Layout;
+const { Sider, Content } = Layout;
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -39,6 +40,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       key: '/insurances',
       icon: <CopyOutlined />,
       label: <Link href="/insurances">Insurances</Link>,
+    },
+    {
+      key: '/featured',
+      icon:  <TreePalm />,
+      label: <Link href="/featured">Featured Locations</Link>,
     },
   ];
 
