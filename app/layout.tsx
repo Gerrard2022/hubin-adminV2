@@ -2,6 +2,7 @@ import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from '@c
 import { ConfigProvider } from 'antd';
 import StyledComponentsRegistry from '@/lib/AntdRegistry';
 import './globals.css';
+import { initializeCronJob } from './cron-init';
 
 export const metadata = {
   title: 'Hubin Admin',
@@ -9,6 +10,12 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Initialize the cron job when the app starts
+  if (typeof window === 'undefined') {
+    // Only run on the server side
+    initializeCronJob();
+  }
+
   return (
     <ClerkProvider>
       <html lang="en">
@@ -25,17 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 }}
               >
                 <SignedOut>
-                  <SignInButton
-                    mode="modal"
-                    style={{
-                      backgroundColor: '#1890ff',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '4px',
-                      padding: '0.5rem 1rem',
-                      cursor: 'pointer',
-                    }}
-                  >
+                  <SignInButton mode="modal">
                     Sign In
                   </SignInButton>
                 </SignedOut>
