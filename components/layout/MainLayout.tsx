@@ -8,7 +8,8 @@ import {
   DashboardOutlined,
   UserOutlined,
   CarOutlined,
-  CopyOutlined
+  CopyOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import { TreePalm, Users } from 'lucide-react';
 import { UserButton, SignedIn, useUser } from "@clerk/nextjs";
@@ -51,6 +52,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       icon:  <TreePalm />,
       label: <Link href="/featured">Featured Locations</Link>,
     },
+    {
+      key: '/notifications',
+      icon: <BellOutlined />,
+      label: <Link href="/notifications">Notifications</Link>,
+    }
   ];
 
   return (

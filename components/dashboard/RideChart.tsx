@@ -67,7 +67,6 @@ export const RideChart = () => {
 
       // Combine both datasets
       const combinedData = [...rideData, ...revenueData];
-      console.log("Final Combined Data:", combinedData);
       setData(combinedData);
     } catch (error) {
       console.error('Error fetching rides:', error);
