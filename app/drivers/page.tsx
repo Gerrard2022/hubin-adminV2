@@ -5,7 +5,6 @@ import { Table, Typography, Card, Switch, Modal, message, Button, Tag, Image } f
 import { supabase } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import { EyeOutlined } from '@ant-design/icons';
-import { log } from 'console';
 
 const { Text, Title } = Typography;
 
@@ -23,7 +22,6 @@ interface Driver {
   DrivingPermit?: string;
 }
 
-// Add this helper function to get the full URL for images
 const getImageUrl = (imagePath: string | null | undefined) => {
   if (!imagePath) return null;
   
@@ -48,18 +46,14 @@ export default function Drivers() {
   const fetchDrivers = async () => {
     try {
       setLoading(true);
-      // First get all drivers
+
       const { data: driversData, error: driversError } = await supabase
         .from('Driver')
         .select('*')
         .order('CreatedAt', { ascending: false });
 
-        console.timeLog("DRIVERS", driversData)
-
       if (driversError) throw driversError;
-      
-
-      // Then get ride counts for each driver
+    
       if (driversData) {
         const driversWithCounts = await Promise.all(
           driversData.map(async (driver) => {
@@ -87,7 +81,7 @@ export default function Drivers() {
 
   const handleApprovalChange = async (driverId: string, newStatus: boolean) => {
     try {
-      // Optimistically update the UI
+
       setDrivers(currentDrivers => 
         currentDrivers.map(driver => 
           driver.id === driverId 
@@ -96,7 +90,7 @@ export default function Drivers() {
         )
       );
 
-      // Also update the selected driver if modal is open
+
       if (selectedDriver && selectedDriver.id === driverId) {
         setSelectedDriver(prev => prev ? { ...prev, approved: newStatus } : null);
       }
@@ -107,7 +101,7 @@ export default function Drivers() {
         .eq('id', driverId);
 
       if (error) {
-        // Revert the optimistic update if there's an error
+
         setDrivers(currentDrivers => 
           currentDrivers.map(driver => 
             driver.id === driverId 

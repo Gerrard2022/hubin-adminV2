@@ -13,12 +13,18 @@
     "@ant-design/plots": "^2.3.3",
     "@antv/g2plot": "^2.4.32",
     "@clerk/nextjs": "^6.9.14",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.47.12",
     "antd": "^5.23.0",
-    "lucide-react": "^0.471.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.471.2",
     "next": "15.1.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",

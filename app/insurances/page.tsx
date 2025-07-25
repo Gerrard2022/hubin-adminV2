@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Table, Typography, Card, Switch, Modal, message, Button, Tag, Image } from 'antd';
+import { Table, Typography, Card, Modal, message, Button, Tag, Image } from 'antd';
 import { supabase } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import { EyeOutlined } from '@ant-design/icons';
@@ -25,18 +25,6 @@ interface DriverInsurance {
   DriverName?: string;
 }
 
-// Helper function to get the full URL for images
-const getImageUrl = (imagePath: string | null | undefined) => {
-  if (!imagePath) return null;
-  
-  const { data } = supabase
-    .storage
-    .from('insurance-documents')
-    .getPublicUrl(imagePath);
-    
-  return data.publicUrl;
-};
-
 export default function DriverInsurances() {
   const [insurances, setInsurances] = useState<DriverInsurance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +39,6 @@ export default function DriverInsurances() {
     try {
       setLoading(true);
       
-      // Fetch insurances with driver name
       const { data: insurancesData, error: insurancesError } = await supabase
         .from('DriverInsurance')
         .select(`
@@ -62,7 +49,6 @@ export default function DriverInsurances() {
 
       if (insurancesError) throw insurancesError;
 
-      // Transform data to include driver name
       const insurancesWithDriverName = insurancesData?.map(insurance => ({
         ...insurance,
         DriverName: insurance.Driver?.LegalName || 'Unknown Driver'

@@ -51,7 +51,6 @@ export default function SupportRequests() {
 
   const handleStatusChange = async (requestId: number, newStatus: string) => {
     try {
-      // Optimistically update the UI
       setSupportRequests(currentRequests => 
         currentRequests.filter(request => request.Id !== requestId)
       );
@@ -62,7 +61,6 @@ export default function SupportRequests() {
         .eq('Id', requestId);
 
       if (error) {
-        // If update fails, restore the request
         fetchSupportRequests();
         throw error;
       }
@@ -205,7 +203,7 @@ export default function SupportRequests() {
                     <Select
                       style={{ width: '100%' }}
                       placeholder="Change Status"
-                      value={selectedRequest.Status} // Changed from defaultValue to value
+                      value={selectedRequest.Status} 
                       onChange={(value) => handleStatusChange(selectedRequest.Id, value)}
                     >
                       <Option value="answered">Answered</Option>

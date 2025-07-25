@@ -8,7 +8,6 @@ import DashboardTotalCountCard from '@/components/dashboard/DashboardTotalCountC
 import RecentRides from '@/components/dashboard/RecentRides';
 import RideChart from '@/components/dashboard/RideChart';
 import { supabase } from '@/lib/supabase';
-import { log } from 'console';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -26,12 +25,10 @@ export default function Dashboard() {
 
   const fetchDashboardStats = async () => {
     try {
-      // Get current month stats
       const currentDate = new Date();
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const firstDayOfLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
 
-      // Fetch rides
       const { data: currentRides } = await supabase
         .from('Rides')
         .select('FarePrice')
@@ -43,7 +40,6 @@ export default function Dashboard() {
         .gte('CreatedAt', firstDayOfLastMonth.toISOString())
         .lt('CreatedAt', firstDayOfMonth.toISOString());
 
-      // Fetch drivers
       const { count: currentDrivers } = await supabase
         .from('Driver')
         .select('*', { count: 'exact' });
@@ -52,8 +48,7 @@ export default function Dashboard() {
         .from('Driver')
         .select('*', { count: 'exact' })
         .lt('CreatedAt', firstDayOfMonth.toISOString());
-
-      // Calculate growth percentages
+      
       const rideGrowth = lastMonthRides?.length 
         ? ((currentRides?.length || 0) - lastMonthRides.length) / lastMonthRides.length * 100 
         : 0;
@@ -76,7 +71,6 @@ export default function Dashboard() {
         driverGrowth,
         revenueGrowth,
       });
-      console.log("total drivers", currentDrivers)
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
     }

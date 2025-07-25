@@ -29,7 +29,6 @@ export const RideChart = () => {
 
       if (error) throw error;
 
-      // Group rides by month
       const monthlyData = (rides || []).reduce((acc: Record<string, { rides: number, revenue: number }>, ride) => {
         const month = new Date(ride.CreatedAt).toLocaleString("default", {
           month: "short",
@@ -45,27 +44,23 @@ export const RideChart = () => {
         return acc;
       }, {});
 
-      // Define all months to fill missing ones
       const allMonths = [
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
       ];
 
-      // Create ride data array
       const rideData = allMonths.map(month => ({
         timeText: month,
         value: monthlyData[month]?.rides || 0,
         state: "Rides"
       }));
 
-      // Create revenue data array
       const revenueData = allMonths.map(month => ({
         timeText: month,
         value: monthlyData[month]?.revenue || 0,
         state: "Revenue"
       }));
 
-      // Combine both datasets
       const combinedData = [...rideData, ...revenueData];
       setData(combinedData);
     } catch (error) {
@@ -79,7 +74,7 @@ export const RideChart = () => {
     data,
     xField: "timeText",
     yField: "value",
-    isStack: false,
+    stack: true,
     seriesField: "state",
     animation: true,
     startOnZero: false,
