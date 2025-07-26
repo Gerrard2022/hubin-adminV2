@@ -28,7 +28,7 @@ export async function updateFeaturedLocation(id: number, { Title, SubTitle, Imag
   const { data, error } = await supabase
     .from('FeaturedLocations')
     .update({ Title, SubTitle, Image })
-    .eq('id', id)
+    .eq('Id', id)
     .select();
   if (error) throw error;
   return data ? data[0] : null;
@@ -38,7 +38,7 @@ export async function deleteFeaturedLocation(id: number) {
   const { error } = await supabase
     .from('FeaturedLocations')
     .delete()
-    .eq('id', id);
+    .eq('Id', id);
   if (error) throw error;
   return true;
 }

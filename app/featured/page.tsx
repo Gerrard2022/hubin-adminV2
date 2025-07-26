@@ -1,26 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  Table, 
-  Typography, 
-  Card, 
-  Modal, 
-  message, 
-  Button, 
-  Form, 
-  Input, 
-  Upload, 
-  Image as AntImage 
-} from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { useState, useEffect, useRef } from 'react';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { supabase } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
-import { UploadChangeParam } from 'antd/es/upload';
-import { createFeaturedLocation, deleteFeaturedLocation, fetchFeaturedLocations } from './actions';
-
-
-const { Text, Title } = Typography;
+import { createFeaturedLocation, deleteFeaturedLocation, fetchFeaturedLocations, updateFeaturedLocation } from './actions';
 
 interface FeaturedLocation {
   Id: number;
@@ -36,9 +24,11 @@ interface FeaturedLocation {
 export default function FeaturedLocations() {
   const [locations, setLocations] = useState<FeaturedLocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [modalOpen, setModalOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [form, setForm] = useState({ Title: '', SubTitle: '', Image: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingLocation, setEditingLocation] = useState<FeaturedLocation | null>(null);
 
   useEffect(() => {
@@ -51,16 +41,9 @@ export default function FeaturedLocations() {
       const data = await fetchFeaturedLocations();
       setLocations(data);
     } catch (error) {
-      message.error('Failed to load featured locations');
+      toast.error('Failed to load featured locations');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleImageUpload = (info: UploadChangeParam) => {
-    const file = info.file.originFileObj;
-    if (file) {
-      setImageFile(file);
     }
   };
 
@@ -69,224 +52,199 @@ export default function FeaturedLocations() {
       setLoading(true);
       await deleteFeaturedLocation(id);
       setLocations(prev => prev.filter(loc => loc.Id !== id));
-      message.success('Location deleted');
+      toast.success('Location deleted');
     } catch (error) {
-      message.error('Failed to delete location');
+      toast.error('Failed to delete location');
     } finally {
       setLoading(false);
     }
   };
 
-  const columns = [
-    {
-      title: 'Image',
-      dataIndex: 'Image',
-      key: 'image',
-      width: '20%',
-      render: (imagePath: string) => {
-        let imageUrl = imagePath;
-        if (!/^https?:\/\//.test(imagePath)) {
-          const { data } = supabase.storage.from('featured-locations').getPublicUrl(imagePath);
-          imageUrl = data.publicUrl;
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
+
+  const handleOpenModal = (location?: FeaturedLocation) => {
+    if (location) {
+      setForm({ Title: location.Title, SubTitle: location.SubTitle, Image: location.Image });
+      setEditingLocation(location);
+      setImageFile(null);
+    } else {
+      setForm({ Title: '', SubTitle: '', Image: '' });
+      setEditingLocation(null);
+      setImageFile(null);
+    }
+    setModalOpen(true);
+  };
+
+  const handleSubmitLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.Title || !form.SubTitle || (!editingLocation && !imageFile)) {
+      toast.error('Please fill all fields and upload an image');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      let filePath = form.Image;
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        filePath = `${fileName}`;
+        const { error: uploadError } = await supabase.storage
+          .from('featured-locations')
+          .upload(filePath, imageFile);
+        if (uploadError) {
+          toast.error(`Failed to upload image: ${uploadError.message}`);
+          setSubmitting(false);
+          return;
         }
-        return (
-          <AntImage
-            src={imageUrl}
-            alt="Location"
-            style={{ 
-              width: 100, 
-              height: 100, 
-              objectFit: 'cover',
-              borderRadius: '8px'
-            }}
-          />
-        );
-      },
-    },
-    {
-      title: 'Title',
-      dataIndex: 'Title',
-      key: 'title',
-      width: '30%',
-      render: (text: string) => (
-        <Text strong>{text}</Text>
-      ),
-    },
-    {
-      title: 'Subtitle',
-      dataIndex: 'SubTitle',
-      key: 'subtitle',
-      width: '30%',
-    },
-    {
-      title: 'Created At',
-      dataIndex: 'CreatedAt',
-      key: 'createdAt',
-      width: '20%',
-      render: (date: string) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: '20%',
-      render: (_: any, record: FeaturedLocation) => (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button type="link" onClick={() => setEditingLocation(record)}>
-            Edit
-          </Button>
-          <Button type="link" danger onClick={() => handleDeleteLocation(record.Id)}>
-            Delete
-          </Button>
-        </div>
-      ),
-    },
-  ];
+      }
+      if (editingLocation) {
+        const updated = await updateFeaturedLocation(editingLocation.Id, {
+          Title: form.Title,
+          SubTitle: form.SubTitle,
+          Image: filePath,
+        });
+        if (updated) {
+          setLocations(prev => prev.map(loc => loc.Id === updated.Id ? updated : loc));
+          toast.success('Featured location updated successfully');
+        }
+      } else {
+        const newLocation = await createFeaturedLocation({
+          Title: form.Title,
+          SubTitle: form.SubTitle,
+          Image: filePath,
+        });
+        if (newLocation) {
+          setLocations(prevLocations => [newLocation, ...prevLocations]);
+          toast.success('Featured location created successfully');
+        }
+      }
+      setModalOpen(false);
+      setForm({ Title: '', SubTitle: '', Image: '' });
+      setImageFile(null);
+      setEditingLocation(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save location');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <MainLayout>
       <div className="p-6">
-        <Card 
-          bodyStyle={{ padding: "0px" }}
-          extra={
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={() => setModalVisible(true)}
-              className="m-4"
-            >
-              Add New Location
-            </Button>
-          }
-        >
-          <div className="p-6 border-b">
-            <Title level={4} style={{ margin: 0 }}>
-              Featured Locations
-            </Title>
+        <div className="bg-white rounded-lg shadow border">
+          <div className="flex justify-between items-center p-6 border-b">
+            <h4 className="text-lg font-semibold m-0">Featured Locations</h4>
+            <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => handleOpenModal()} className="ml-4">Add New Location</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{editingLocation ? 'Edit Featured Location' : 'Add New Featured Location'}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmitLocation} className="space-y-4">
+                  <div>
+                    <label className="block font-medium mb-1">Title</label>
+                    <Input
+                      value={form.Title}
+                      onChange={e => setForm(f => ({ ...f, Title: e.target.value }))}
+                      placeholder="Enter location title"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium mb-1">Subtitle</label>
+                    <Input
+                      value={form.SubTitle}
+                      onChange={e => setForm(f => ({ ...f, SubTitle: e.target.value }))}
+                      placeholder="Enter location subtitle"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium mb-1">Location Image</label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      ref={fileInputRef}
+                      required={!editingLocation}
+                    />
+                    {editingLocation && !imageFile && (
+                      <div className="mt-2">
+                        <span className="text-xs text-gray-500">Current image:</span>
+                        <img
+                          src={(() => { let imageUrl = editingLocation.Image; if (!/^https?:\/\//.test(imageUrl)) { const { data } = supabase.storage.from('featured-locations').getPublicUrl(imageUrl); imageUrl = data.publicUrl; } return imageUrl; })()}
+                          alt="Current"
+                          className="w-20 h-20 object-cover rounded mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={submitting} className="w-full">
+                      {submitting ? (editingLocation ? 'Saving...' : 'Creating...') : (editingLocation ? 'Save Changes' : 'Create Featured Location')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-          <Table
-            columns={columns}
-            dataSource={locations}
-            rowKey="Id"
-            loading={loading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} locations`,
-            }}
-            scroll={{ x: 1200 }}
-            style={{ minWidth: '800px' }}
-          />
-        </Card>
-
-        <Modal
-          title="Add New Featured Location"
-          open={modalVisible}
-          onCancel={() => setModalVisible(false)}
-          footer={null}
-          width={600}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleCreateLocation}
-          >
-            <Form.Item
-              name="Title"
-              label="Title"
-              rules={[{ required: true, message: 'Please input the location title!' }]}
-            >
-              <Input placeholder="Enter location title" />
-            </Form.Item>
-
-            <Form.Item
-              name="SubTitle"
-              label="Subtitle"
-              rules={[{ required: true, message: 'Please input the location subtitle!' }]}
-            >
-              <Input placeholder="Enter location subtitle" />
-            </Form.Item>
-
-            <Form.Item
-              name="Image"
-              label="Location Image"
-              rules={[{ required: true, message: 'Please upload an image!' }]}
-            >
-              <Upload
-                name="image"
-                listType="picture-card"
-                className="image-uploader"
-                showUploadList={{ showPreviewIcon: false, showRemoveIcon: true }}
-                onChange={handleImageUpload}
-                beforeUpload={() => false} 
-                maxCount={1}
-              >
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Upload</div>
-                </div>
-              </Upload>
-            </Form.Item>
-
-            <Form.Item>
-              <Button 
-                type="primary" 
-                htmlType="button"
-                block
-                loading={loading}
-                disabled={loading}
-                onClick={async () => {
-                  console.log('Create Featured Location button clicked');
-                  try {
-                    const values = await form.validateFields();
-                    if (!imageFile) {
-                      message.error('Please upload an image');
-                      return;
-                    }
-                    setLoading(true);
-                    const fileExt = imageFile.name.split('.').pop();
-                    const fileName = `${Date.now()}.${fileExt}`;
-                    const filePath = `${fileName}`;
-                    console.log('Create button pressed. Data to send:', {
-                      Title: values.Title,
-                      SubTitle: values.SubTitle,
-                      Image: filePath,
-                    });
-                    const { error: uploadError } = await supabase.storage
-                      .from('featured-locations')
-                      .upload(filePath, imageFile);
-                    if (uploadError) {
-                      console.error('Upload error:', uploadError);
-                      message.error(`Failed to upload image: ${uploadError.message}`);
-                      setLoading(false);
-                      return;
-                    }
-                    const newLocation = await createFeaturedLocation({
-                      Title: values.Title,
-                      SubTitle: values.SubTitle,
-                      Image: filePath,
-                    });
-                    if (newLocation) {
-                      setLocations(prevLocations => [newLocation, ...prevLocations]);
-                      message.success('Featured location created successfully');
-                      setModalVisible(false);
-                      form.resetFields();
-                      setImageFile(null);
-                    }
-                  } catch (error) {
-                    // Validation failed or unexpected error
-                    if (error && error.message) {
-                      message.error(error.message);
-                    }
-                  } finally {
-                    setLoading(false);
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Image</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Subtitle</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {locations.map((loc) => {
+                  let imageUrl = loc.Image;
+                  if (!/^https?:\/\//.test(loc.Image)) {
+                    const { data } = supabase.storage.from('featured-locations').getPublicUrl(loc.Image);
+                    imageUrl = data.publicUrl;
                   }
-                }}
-              >
-                {loading ? 'Creating...' : 'Create Featured Location'}
-              </Button>
-            </Form.Item>
-          </Form>
-        </Modal>
+                  return (
+                    <TableRow key={loc.Id}>
+                      <TableCell>
+                        <img
+                          src={imageUrl}
+                          alt="Location"
+                          className="w-24 h-24 object-cover rounded-lg"
+                        />
+                      </TableCell>
+                      <TableCell className="font-semibold">{loc.Title}</TableCell>
+                      <TableCell>{loc.SubTitle}</TableCell>
+                      <TableCell>{new Date(loc.CreatedAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleOpenModal(loc)} disabled={loading}>
+                            Edit
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteLocation(loc.Id)} disabled={loading}>
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {loading && <div className="p-4 text-center text-gray-500">Loading...</div>}
+            {!loading && locations.length === 0 && <div className="p-4 text-center text-gray-500">No featured locations found.</div>}
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

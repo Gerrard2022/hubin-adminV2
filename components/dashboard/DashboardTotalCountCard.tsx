@@ -1,9 +1,8 @@
 'use client';
 
-import { Card, Typography } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
-
-const { Text, Title } = Typography;
+import { Card } from '@/components/ui/card';
+import { ArrowUp, ArrowDown } from 'lucide-react';
+import * as React from 'react';
 
 interface DashboardTotalCountCardProps {
   title: string;
@@ -25,37 +24,30 @@ export default function DashboardTotalCountCard({
   percentage
 }: DashboardTotalCountCardProps) {
   return (
-    <Card 
-      className="hover:shadow-md transition-shadow"
-      bodyStyle={{ padding: '24px' }}
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <Text className="text-gray-600 text-sm">{title}</Text>
-          <Title level={3} style={{ margin: '8px 0' }}>
-            {total.toLocaleString()}
-          </Title>
+    <Card className="p-6 rounded-2xl shadow-lg border border-gray-100 bg-white flex flex-col justify-between min-h-[160px] transition-shadow hover:shadow-xl">
+      <div className="flex justify-between items-start w-full">
+        <div className="flex flex-col gap-2">
+          <span className="text-gray-500 text-sm font-medium tracking-wide uppercase">{title}</span>
+          <h3 className="text-3xl font-semibold text-gray-900">{total.toLocaleString()}</h3>
           {percentage !== undefined && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2 mt-1">
               {percentage >= 0 ? (
-                <ArrowUpOutlined className="text-green-500" />
+                <ArrowUp className="text-green-500 w-4 h-4" />
               ) : (
-                <ArrowDownOutlined className="text-red-500" />
+                <ArrowDown className="text-red-500 w-4 h-4" />
               )}
-              <Text 
-                className={percentage >= 0 ? 'text-green-500' : 'text-red-500'}
-              >
+              <span className={percentage >= 0 ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'}>
                 {Math.abs(percentage)}%
-              </Text>
-              <Text className="text-gray-500">vs last month</Text>
+              </span>
+              <span className="text-gray-400 text-xs">vs last month</span>
             </div>
           )}
         </div>
         <div 
-          className="p-3 rounded-full"
+          className="flex items-center justify-center w-12 h-12 rounded-full shadow bg-opacity-10"
           style={{ backgroundColor: colors.bg }}
         >
-          {icon}
+          <span className="text-2xl" style={{ color: colors.icon }}>{icon}</span>
         </div>
       </div>
     </Card>

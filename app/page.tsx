@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Row, Col } from 'antd';
-import { CarOutlined, UserOutlined, DollarOutlined } from '@ant-design/icons';
+import { Car, User, DollarSign } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import DashboardTotalCountCard from '@/components/dashboard/DashboardTotalCountCard';
 import RecentRides from '@/components/dashboard/RecentRides';
@@ -79,41 +78,37 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <div className="h-screen flex flex-col p-6">
-        <Row gutter={[24, 24]}>
-          <Col xs={24} sm={8}>
-            <DashboardTotalCountCard
-              title="Total Rides"
-              total={stats.totalRides}
-              icon={<CarOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
-              colors={{ bg: '#e6f7ff', text: '#1890ff', icon: '#1890ff' }}
-              percentage={stats.rideGrowth}
-            />
-          </Col>
-          <Col xs={24} sm={8}>
-            <DashboardTotalCountCard
-              title="Total Drivers"
-              total={stats.totalDrivers}
-              icon={<UserOutlined style={{ fontSize: 24, color: '#52c41a' }} />}
-              colors={{ bg: '#f6ffed', text: '#52c41a', icon: '#52c41a' }}
-              percentage={stats.driverGrowth}
-            />
-          </Col>
-          <Col xs={24} sm={8}>
-            <DashboardTotalCountCard
-              title="Total Revenue"
-              total={stats.totalRevenue}
-              icon={<DollarOutlined style={{ fontSize: 24, color: '#722ed1' }} />}
-              colors={{ bg: '#f9f0ff', text: '#722ed1', icon: '#722ed1' }}
-              percentage={stats.revenueGrowth}
-            />
-          </Col>
-          <Col xs={24} lg={16}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+          <DashboardTotalCountCard
+            title="Total Rides"
+            total={stats.totalRides}
+            icon={<Car size={24} color="#1890ff" />}
+            colors={{ bg: '#e6f7ff', text: '#1890ff', icon: '#1890ff' }}
+            percentage={stats.rideGrowth}
+          />
+          <DashboardTotalCountCard
+            title="Total Drivers"
+            total={stats.totalDrivers}
+            icon={<User size={24} color="#52c41a" />}
+            colors={{ bg: '#f6ffed', text: '#52c41a', icon: '#52c41a' }}
+            percentage={stats.driverGrowth}
+          />
+          <DashboardTotalCountCard
+            title="Total Revenue"
+            total={stats.totalRevenue}
+            icon={<DollarSign size={24} color="#722ed1" />}
+            colors={{ bg: '#f9f0ff', text: '#722ed1', icon: '#722ed1' }}
+            percentage={stats.revenueGrowth}
+          />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
             <RideChart />
-          </Col>
-          <Col xs={24} lg={8}>
+          </div>
+          <div className="lg:col-span-1">
             <RecentRides />
-          </Col>
-        </Row>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

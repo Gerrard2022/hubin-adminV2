@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Table, Typography, Card, Modal, message, Button, Tag, Select } from 'antd';
-import { supabase } from "@/lib/supabase";
-import MainLayout from "@/components/layout/MainLayout";
-import { EyeOutlined } from '@ant-design/icons';
-
-const { Text, Title } = Typography;
-const { Option } = Select;
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import MainLayout from '@/components/layout/MainLayout';
+import { supabase } from '@/lib/supabase';
 
 interface SupportRequest {
   Id: number;
@@ -22,8 +21,6 @@ interface SupportRequest {
 export default function SupportRequests() {
   const [supportRequests, setSupportRequests] = useState<SupportRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<SupportRequest | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     fetchSupportRequests();
@@ -37,13 +34,10 @@ export default function SupportRequests() {
         .select('*')
         .eq('Status', 'pending')
         .order('CreatedAt', { ascending: false });
-
       if (error) throw error;
-
       setSupportRequests(data || []);
     } catch (error) {
-      console.error('Error fetching support requests:', error);
-      message.error('Failed to load support requests');
+      alert('Failed to load support requests');
     } finally {
       setLoading(false);
     }
@@ -54,167 +48,109 @@ export default function SupportRequests() {
       setSupportRequests(currentRequests => 
         currentRequests.filter(request => request.Id !== requestId)
       );
-
       const { error } = await supabase
         .from('SupportRequests')
         .update({ Status: newStatus })
         .eq('Id', requestId);
-
       if (error) {
         fetchSupportRequests();
         throw error;
       }
-
-      message.success(`Support request marked as ${newStatus}`);
-      setModalVisible(false);
+      alert(`Support request marked as ${newStatus}`);
     } catch (error) {
-      console.error('Error updating support request status:', error);
-      message.error('Failed to update support request status');
+      alert('Failed to update support request status');
     }
   };
-
-  const showRequestDetails = (request: SupportRequest) => {
-    setSelectedRequest(request);
-    setModalVisible(true);
-  };
-
-  const columns = [
-    {
-      title: 'Subject',
-      dataIndex: 'Subject',
-      key: 'subject',
-      width: '25%',
-      ellipsis: true,
-      render: (text: string) => (
-        <Text
-          strong
-          style={{
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}
-        >
-          {text}
-        </Text>
-      ),
-    },
-    {
-      title: 'Contact Info',
-      dataIndex: 'ContactInfo',
-      key: 'contactInfo',
-      width: '20%',
-      ellipsis: true,
-    },
-    {
-      title: 'Created At',
-      dataIndex: 'CreatedAt',
-      key: 'createdAt',
-      width: '20%',
-      render: (date: string) => new Date(date).toLocaleString(),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'Status',
-      key: 'status',
-      width: '15%',
-      align: 'center' as const,
-      render: (status: string) => (
-        <Tag color="warning">{status}</Tag>
-      ),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: '10%',
-      align: 'center' as const,
-      render: (_: any, record: SupportRequest) => (
-        <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => showRequestDetails(record)}
-        >
-          Edit
-        </Button>
-      ),
-    },
-  ];
 
   return (
     <MainLayout>
       <div className="p-6">
-        <Card bodyStyle={{ padding: "0px" }}>
+        <div className="bg-white rounded-lg shadow border">
           <div className="p-6 border-b">
-            <Title level={4} style={{ margin: 0 }}>
-              Pending Support Requests
-            </Title>
+            <h4 className="text-lg font-semibold m-0">Pending Support Requests</h4>
           </div>
-          <Table
-            columns={columns}
-            dataSource={supportRequests}
-            rowKey="Id"
-            loading={loading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} pending requests`,
-            }}
-            scroll={{ x: 1000 }}
-            style={{ minWidth: '800px' }}
-          />
-        </Card>
-
-        <Modal
-          title="Support Request Details"
-          open={modalVisible}
-          onCancel={() => setModalVisible(false)}
-          footer={[
-            <Button key="close" onClick={() => setModalVisible(false)}>
-              Close
-            </Button>
-          ]}
-          width={600}
-        >
-          {selectedRequest && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Text type="secondary">Subject</Text>
-                  <div className="font-medium">{selectedRequest.Subject}</div>
-                </div>
-                <div>
-                  <Text type="secondary">Contact Info</Text>
-                  <div className="font-medium">{selectedRequest.ContactInfo}</div>
-                </div>
-                <div className="col-span-2">
-                  <Text type="secondary">Message</Text>
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    {selectedRequest.Message}
-                  </div>
-                </div>
-                <div>
-                  <Text type="secondary">Created At</Text>
-                  <div className="font-medium">
-                    {new Date(selectedRequest.CreatedAt).toLocaleString()}
-                  </div>
-                </div>
-                <div>
-                  <Text type="secondary">Update Status</Text>
-                  <div>
-                    <Select
-                      style={{ width: '100%' }}
-                      placeholder="Change Status"
-                      value={selectedRequest.Status} 
-                      onChange={(value) => handleStatusChange(selectedRequest.Id, value)}
-                    >
-                      <Option value="answered">Answered</Option>
-                      <Option value="pending">Pending</Option>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </Modal>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[180px]">Subject</TableHead>
+                  <TableHead>Contact Info</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {supportRequests.map((request) => (
+                  <TableRow key={request.Id}>
+                    <TableCell className="min-w-[180px] truncate font-semibold">{request.Subject}</TableCell>
+                    <TableCell>{request.ContactInfo}</TableCell>
+                    <TableCell>{new Date(request.CreatedAt).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                        {request.Status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button key={request.Id + '-trigger'} variant="link" size="sm">
+                            Edit
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent key={request.Id + '-dialog'} className="max-w-xl">
+                          <DialogHeader>
+                            <DialogTitle>Support Request Details</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div key={request.Id + '-subject'}>
+                                <div className="text-xs text-gray-500">Subject</div>
+                                <div className="font-medium">{request.Subject}</div>
+                              </div>
+                              <div key={request.Id + '-contact'}>
+                                <div className="text-xs text-gray-500">Contact Info</div>
+                                <div className="font-medium">{request.ContactInfo}</div>
+                              </div>
+                              <div className="col-span-2" key={request.Id + '-message'}>
+                                <div className="text-xs text-gray-500">Message</div>
+                                <div className="border rounded-lg p-4 bg-gray-50">{request.Message}</div>
+                              </div>
+                              <div key={request.Id + '-created'}>
+                                <div className="text-xs text-gray-500">Created At</div>
+                                <div className="font-medium">{new Date(request.CreatedAt).toLocaleString()}</div>
+                              </div>
+                              <div key={request.Id + '-status'}>
+                                <div className="text-xs text-gray-500">Update Status</div>
+                                <div>
+                                  <select
+                                    className="w-full border rounded px-2 py-1"
+                                    value={request.Status}
+                                    onChange={(e) => handleStatusChange(request.Id, e.target.value)}
+                                  >
+                                    <option value="answered">Answered</option>
+                                    <option value="pending">Pending</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <DialogClose asChild>
+                              <Button variant="outline">Close</Button>
+                            </DialogClose>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {loading && <div className="p-4 text-center text-gray-500">Loading...</div>}
+            {!loading && supportRequests.length === 0 && <div className="p-4 text-center text-gray-500">No pending requests found.</div>}
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

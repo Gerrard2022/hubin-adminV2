@@ -1,10 +1,18 @@
 'use client';
 
-import { Table, Card, Typography, Tag } from 'antd';
+import { Card } from '@/components/ui/card';
+import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-
-const { Title } = Typography;
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface RecentRide {
   RideId: string;
@@ -50,36 +58,43 @@ export default function RecentRides() {
     .trim();
   };
 
-  const columns = [
-    {
-      title: 'Amount',
-      dataIndex: 'FarePrice',
-      key: 'amount',
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'PaymentStatus',
-      key: 'status',
-      render: (status: string) => (
-        <Tag color={status === 'paid' ? 'success' : 'warning'}>
-          {status === 'paid' ? 'Paid' : 'Not Paid'}
-        </Tag>
-      ),
-    },
-  ];
-
   return (
-    <Card>
-      <Title level={5} className="mb-4">Recent Rides</Title>
-      <Table
-        columns={columns}
-        dataSource={rides}
-        rowKey="RideId"
-        loading={loading}
-        pagination={false}
-        size="small"
-      />
+    <Card className="p-0 overflow-hidden">
+      <div className="px-6 pt-6 pb-2">
+        <h5 className="text-lg font-semibold mb-1">Recent Rides</h5>
+        <p className="text-sm text-muted-foreground mb-2">Last 5 rides with payment status</p>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted">
+            <TableHead>Amount</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={2} className="text-center text-muted-foreground py-6">Loading...</TableCell>
+            </TableRow>
+          ) : rides.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={2} className="text-center text-muted-foreground py-6">No recent rides found.</TableCell>
+            </TableRow>
+          ) : (
+            rides.map((ride) => (
+              <TableRow key={ride.RideId} className="hover:bg-accent/40 transition-colors">
+                <TableCell className="font-medium">{formatCurrency(ride.FarePrice)}</TableCell>
+                <TableCell>
+                  <Badge variant={ride.PaymentStatus === 'paid' ? 'default' : 'secondary'}
+                    className={ride.PaymentStatus === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}>
+                    {ride.PaymentStatus === 'paid' ? 'Paid' : 'Not Paid'}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </Card>
   );
 } 

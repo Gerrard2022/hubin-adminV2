@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Table, Typography, Card, Modal, message, Button, Tag, Image } from 'antd';
-import { supabase } from "@/lib/supabase";
-import MainLayout from "@/components/layout/MainLayout";
-import { EyeOutlined } from '@ant-design/icons';
-
-const { Text, Title } = Typography;
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import MainLayout from '@/components/layout/MainLayout';
+import { supabase } from '@/lib/supabase';
 
 interface DriverInsurance {
   Id: string;
@@ -28,8 +28,6 @@ interface DriverInsurance {
 export default function DriverInsurances() {
   const [insurances, setInsurances] = useState<DriverInsurance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedInsurance, setSelectedInsurance] = useState<DriverInsurance | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     fetchDriverInsurances();
@@ -38,7 +36,6 @@ export default function DriverInsurances() {
   const fetchDriverInsurances = async () => {
     try {
       setLoading(true);
-      
       const { data: insurancesData, error: insurancesError } = await supabase
         .from('DriverInsurance')
         .select(`
@@ -46,235 +43,141 @@ export default function DriverInsurances() {
           Driver!inner(LegalName)
         `)
         .order('CreatedAt', { ascending: false });
-
       if (insurancesError) throw insurancesError;
-
       const insurancesWithDriverName = insurancesData?.map(insurance => ({
         ...insurance,
         DriverName: insurance.Driver?.LegalName || 'Unknown Driver'
       })) || [];
-
       setInsurances(insurancesWithDriverName);
     } catch (error) {
-      console.error('Error fetching driver insurances:', error);
-      message.error('Failed to load driver insurances');
+      alert('Failed to load driver insurances');
     } finally {
       setLoading(false);
     }
   };
 
-  const showInsuranceDetails = (insurance: DriverInsurance) => {
-    setSelectedInsurance(insurance);
-    setModalVisible(true);
-  };
-
-  const columns = [
-    {
-      title: 'Driver Name',
-      dataIndex: 'DriverName',
-      key: 'driverName',
-      width: '20%',
-      ellipsis: true,
-      render: (text: string) => (
-        <Text
-          strong
-          style={{
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}
-        >
-          {text}
-        </Text>
-      ),
-    },
-    {
-      title: 'Policy Number',
-      dataIndex: 'PolicyNo',
-      key: 'policyNo',
-      width: '15%',
-      ellipsis: true,
-    },
-    {
-      title: 'Insurer',
-      dataIndex: 'Insurer',
-      key: 'insurer',
-      width: '15%',
-      ellipsis: true,
-      render: (text: string) => (
-        <Tag color="blue">{text}</Tag>
-      ),
-    },
-    {
-      title: 'Mark Type',
-      dataIndex: 'MarkType',
-      key: 'markType',
-      width: '12%',
-      align: 'center' as const,
-      render: (text: string) => <Tag color="purple">{text}</Tag>,
-    },
-    {
-      title: 'Inception Date',
-      dataIndex: 'InceptionDate',
-      key: 'inceptionDate',
-      width: '12%',
-      align: 'center' as const,
-      render: (date: string) => (
-        <Text>{new Date(date).toLocaleDateString()}</Text>
-      ),
-    },
-    {
-      title: 'Expiry Date',
-      dataIndex: 'ExpiryDate',
-      key: 'expiryDate',
-      width: '12%',
-      align: 'center' as const,
-      render: (date: string) => (
-        <Text style={{ color: new Date(date) < new Date() ? 'red' : 'inherit' }}>
-          {new Date(date).toLocaleDateString()}
-        </Text>
-      ),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: '10%',
-      align: 'center' as const,
-      render: (_: any, record: DriverInsurance) => (
-        <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => showInsuranceDetails(record)}
-        >
-          View
-        </Button>
-      ),
-    },
-  ];
-
   return (
     <MainLayout>
       <div className="p-6">
-        <Card bodyStyle={{ padding: "0px" }}>
+        <div className="bg-white rounded-lg shadow border">
           <div className="p-6 border-b">
-            <Title level={4} style={{ margin: 0 }}>
-              Driver Insurances
-            </Title>
+            <h4 className="text-lg font-semibold m-0">Driver Insurances</h4>
           </div>
-          <Table
-            columns={columns}
-            dataSource={insurances}
-            rowKey="Id"
-            loading={loading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} insurances`,
-            }}
-            scroll={{ x: 1200 }}
-            style={{ minWidth: '800px' }}
-          />
-        </Card>
-
-        <Modal
-          title="Insurance Details"
-          open={modalVisible}
-          onCancel={() => setModalVisible(false)}
-          footer={[
-            <Button key="close" onClick={() => setModalVisible(false)}>
-              Close
-            </Button>
-          ]}
-          width={800}
-        >
-          {selectedInsurance && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Text type="secondary">Driver Name</Text>
-                  <div className="font-medium">{selectedInsurance.DriverName}</div>
-                </div>
-                <div>
-                  <Text type="secondary">Policy Number</Text>
-                  <div className="font-medium">{selectedInsurance.PolicyNo}</div>
-                </div>
-                <div>
-                  <Text type="secondary">Insurer</Text>
-                  <div>
-                    <Tag color="blue">{selectedInsurance.Insurer}</Tag>
-                  </div>
-                </div>
-                <div>
-                  <Text type="secondary">Mark Type</Text>
-                  <div>
-                    <Tag color="purple">{selectedInsurance.MarkType}</Tag>
-                  </div>
-                </div>
-                <div>
-                  <Text type="secondary">Chassis</Text>
-                  <div className="font-medium">{selectedInsurance.Chassis || 'N/A'}</div>
-                </div>
-                <div>
-                  <Text type="secondary">PSV</Text>
-                  <div className="font-medium">{selectedInsurance.Psv || 'N/A'}</div>
-                </div>
-                <div>
-                  <Text type="secondary">Usage</Text>
-                  <div className="font-medium">{selectedInsurance.Usage || 'N/A'}</div>
-                </div>
-                <div>
-                  <Text type="secondary">Inception Date</Text>
-                  <div className="font-medium">
-                    {selectedInsurance.InceptionDate 
-                      ? new Date(selectedInsurance.InceptionDate).toLocaleDateString() 
-                      : 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <Text type="secondary">Expiry Date</Text>
-                  <div className="font-medium" style={{ 
-                    color: selectedInsurance.ExpiryDate && new Date(selectedInsurance.ExpiryDate) < new Date() 
-                      ? 'red' 
-                      : 'inherit' 
-                  }}>
-                    {selectedInsurance.ExpiryDate 
-                      ? new Date(selectedInsurance.ExpiryDate).toLocaleDateString() 
-                      : 'N/A'}
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <Text type="secondary" className="block mb-2">Insurance Document</Text>
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    {selectedInsurance.InsuranceDocument ? (
-                      <Image
-                        src={selectedInsurance.InsuranceDocument}
-                        alt="Insurance Document"
-                        className="rounded-lg"
-                        style={{ maxHeight: '200px', objectFit: 'contain' }}
-                      />
-                    ) : (
-                      <div className="text-gray-500 italic">No document uploaded</div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <Text type="secondary">Created At</Text>
-                  <div className="font-medium">
-                    {new Date(selectedInsurance.CreatedAt).toLocaleDateString()}
-                  </div>
-                </div>
-                <div>
-                  <Text type="secondary">Last Updated</Text>
-                  <div className="font-medium">
-                    {selectedInsurance.UpdatedOn 
-                      ? new Date(selectedInsurance.UpdatedOn).toLocaleDateString() 
-                      : 'N/A'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </Modal>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[180px]">Driver Name</TableHead>
+                  <TableHead>Policy Number</TableHead>
+                  <TableHead>Insurer</TableHead>
+                  <TableHead>Mark Type</TableHead>
+                  <TableHead>Inception Date</TableHead>
+                  <TableHead>Expiry Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {insurances.map((insurance) => (
+                  <TableRow key={insurance.Id}>
+                    <TableCell className="min-w-[180px] truncate font-semibold">{insurance.DriverName}</TableCell>
+                    <TableCell>{insurance.PolicyNo}</TableCell>
+                    <TableCell><Badge variant="secondary">{insurance.Insurer}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{insurance.MarkType}</Badge></TableCell>
+                    <TableCell>{insurance.InceptionDate ? new Date(insurance.InceptionDate).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell className={insurance.ExpiryDate && new Date(insurance.ExpiryDate) < new Date() ? 'text-red-600' : ''}>
+                      {insurance.ExpiryDate ? new Date(insurance.ExpiryDate).toLocaleDateString() : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button key={insurance.Id + '-trigger'} variant="link" size="sm">
+                            View
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent key={insurance.Id + '-dialog'} className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Insurance Details</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div key={insurance.Id + '-driver'}>
+                                <div className="text-xs text-gray-500">Driver Name</div>
+                                <div className="font-medium">{insurance.DriverName}</div>
+                              </div>
+                              <div key={insurance.Id + '-policy'}>
+                                <div className="text-xs text-gray-500">Policy Number</div>
+                                <div className="font-medium">{insurance.PolicyNo}</div>
+                              </div>
+                              <div key={insurance.Id + '-insurer'}>
+                                <div className="text-xs text-gray-500">Insurer</div>
+                                <Badge variant="secondary">{insurance.Insurer}</Badge>
+                              </div>
+                              <div key={insurance.Id + '-marktype'}>
+                                <div className="text-xs text-gray-500">Mark Type</div>
+                                <Badge variant="outline">{insurance.MarkType}</Badge>
+                              </div>
+                              <div key={insurance.Id + '-chassis'}>
+                                <div className="text-xs text-gray-500">Chassis</div>
+                                <div className="font-medium">{insurance.Chassis || 'N/A'}</div>
+                              </div>
+                              <div key={insurance.Id + '-psv'}>
+                                <div className="text-xs text-gray-500">PSV</div>
+                                <div className="font-medium">{insurance.Psv || 'N/A'}</div>
+                              </div>
+                              <div key={insurance.Id + '-usage'}>
+                                <div className="text-xs text-gray-500">Usage</div>
+                                <div className="font-medium">{insurance.Usage || 'N/A'}</div>
+                              </div>
+                              <div key={insurance.Id + '-inception'}>
+                                <div className="text-xs text-gray-500">Inception Date</div>
+                                <div className="font-medium">{insurance.InceptionDate ? new Date(insurance.InceptionDate).toLocaleDateString() : 'N/A'}</div>
+                              </div>
+                              <div key={insurance.Id + '-expiry'}>
+                                <div className="text-xs text-gray-500">Expiry Date</div>
+                                <div className={insurance.ExpiryDate && new Date(insurance.ExpiryDate) < new Date() ? 'font-medium text-red-600' : 'font-medium'}>
+                                  {insurance.ExpiryDate ? new Date(insurance.ExpiryDate).toLocaleDateString() : 'N/A'}
+                                </div>
+                              </div>
+                              <div className="col-span-2" key={insurance.Id + '-doc'}>
+                                <div className="text-xs text-gray-500 mb-2">Insurance Document</div>
+                                <div className="border rounded-lg p-4 bg-gray-50">
+                                  {insurance.InsuranceDocument ? (
+                                    <img
+                                      src={insurance.InsuranceDocument}
+                                      alt="Insurance Document"
+                                      className="rounded-lg max-h-[200px] object-contain"
+                                    />
+                                  ) : (
+                                    <div className="text-gray-500 italic">No document uploaded</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div key={insurance.Id + '-created'}>
+                                <div className="text-xs text-gray-500">Created At</div>
+                                <div className="font-medium">{new Date(insurance.CreatedAt).toLocaleDateString()}</div>
+                              </div>
+                              <div key={insurance.Id + '-updated'}>
+                                <div className="text-xs text-gray-500">Last Updated</div>
+                                <div className="font-medium">{insurance.UpdatedOn ? new Date(insurance.UpdatedOn).toLocaleDateString() : 'N/A'}</div>
+                              </div>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <DialogClose asChild>
+                              <Button variant="outline">Close</Button>
+                            </DialogClose>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {loading && <div className="p-4 text-center text-gray-500">Loading...</div>}
+            {!loading && insurances.length === 0 && <div className="p-4 text-center text-gray-500">No insurances found.</div>}
+          </div>
+        </div>
       </div>
     </MainLayout>
   );
