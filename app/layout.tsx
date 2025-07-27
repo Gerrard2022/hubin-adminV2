@@ -1,9 +1,13 @@
-import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata = {
   title: 'Hubin Admin',
   description: 'Hubin Admin Dashboard',
+  icons: {
+    icon: '/logo.jpg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -20,26 +24,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               padding: '1rem',
               zIndex: 1000,
             }}
-          >
-            <SignedOut>
-              <SignInButton mode="modal">
-                Sign In
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <UserButton
-                appearance={{
-                  elements: {
-                    userButtonAvatarBox: {
-                      borderRadius: '50%',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                    },
-                  },
-                }}
-              />
-            </SignedIn>
+          >          
           </nav>
           {children}
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>
