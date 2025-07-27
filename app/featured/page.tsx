@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import { createFeaturedLocation, deleteFeaturedLocation, fetchFeaturedLocations, updateFeaturedLocation } from './actions';
+import { ApprovalPopup } from '@/components/ApprovalPopup';   
 
 interface FeaturedLocation {
   Id: number;
@@ -231,9 +232,17 @@ export default function FeaturedLocations() {
                           <Button size="sm" onClick={() => handleOpenModal(loc)} disabled={loading}>
                             Edit
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteLocation(loc.Id)} disabled={loading}>
-                            Delete
-                          </Button>
+                          <ApprovalPopup
+                            Description="Are you sure you want to delete this featured location? This action cannot be undone."
+                            Title="Delete Featured Location"
+                            Trigger={
+                              <Button variant="destructive" size="sm" disabled={loading}>
+                                Delete
+                              </Button>
+                            }
+                            OnConfirm={() => handleDeleteLocation(loc.Id)}
+                            OnCancel={() => {}}
+                          />
                         </div>
                       </TableCell>
                     </TableRow>
