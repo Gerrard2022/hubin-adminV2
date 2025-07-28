@@ -6,7 +6,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/layout/MainLayout';
-import { supabase } from '@/lib/supabase';
+import { toast } from "sonner"
 
 interface DriverInsurance {
   Id: string;
@@ -19,11 +19,18 @@ interface DriverInsurance {
   ExpiryDate: string | null;
   MarkType: string | null;
   Chassis: string | null;
-  Psv: string | null;
+  PSV: string | null; // Updated field name to match schema
   Usage: string | null;
   Insurer: string | null;
   DriverName?: string;
 }
+
+// Handle image URLs (you might need to adapt this based on your storage solution)
+const getImageUrl = (imagePath: string | null | undefined) => {
+  if (!imagePath) return null;
+  // Assuming images are stored as URLs or in a different storage solution
+  return imagePath;
+};
 
 export default function DriverInsurances() {
   const [insurances, setInsurances] = useState<DriverInsurance[]>([]);
@@ -36,24 +43,40 @@ export default function DriverInsurances() {
   const fetchDriverInsurances = async () => {
     try {
       setLoading(true);
-      const { data: insurancesData, error: insurancesError } = await supabase
-        .from('DriverInsurance')
-        .select(`
-          *,
-          Driver!inner(LegalName)
-        `)
-        .order('CreatedAt', { ascending: false });
-      if (insurancesError) throw insurancesError;
-      const insurancesWithDriverName = insurancesData?.map(insurance => ({
-        ...insurance,
-        DriverName: insurance.Driver?.LegalName || 'Unknown Driver'
-      })) || [];
-      setInsurances(insurancesWithDriverName);
+      
+      const response = await fetch('/api/driver-insurances', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch driver insurances');
+      }
+
+      const data = await response.json();
+      setInsurances(data);
+      
     } catch (error) {
-      alert('Failed to load driver insurances');
+      console.error('Error fetching driver insurances:', error);
+      toast.error('Failed to load driver insurances');
     } finally {
       setLoading(false);
     }
+  };
+
+  const isExpired = (expiryDate: string | null) => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
+  };
+
+  const isExpiringSoon = (expiryDate: string | null) => {
+    if (!expiryDate) return false;
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+    const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+    return expiry > today && expiry <= thirtyDaysFromNow;
   };
 
   return (
@@ -73,109 +96,156 @@ export default function DriverInsurances() {
                   <TableHead>Mark Type</TableHead>
                   <TableHead>Inception Date</TableHead>
                   <TableHead>Expiry Date</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {insurances.map((insurance) => (
-                  <TableRow key={insurance.Id}>
-                    <TableCell className="min-w-[180px] truncate font-semibold">{insurance.DriverName}</TableCell>
-                    <TableCell>{insurance.PolicyNo}</TableCell>
-                    <TableCell><Badge variant="secondary">{insurance.Insurer}</Badge></TableCell>
-                    <TableCell><Badge variant="outline">{insurance.MarkType}</Badge></TableCell>
-                    <TableCell>{insurance.InceptionDate ? new Date(insurance.InceptionDate).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell className={insurance.ExpiryDate && new Date(insurance.ExpiryDate) < new Date() ? 'text-red-600' : ''}>
-                      {insurance.ExpiryDate ? new Date(insurance.ExpiryDate).toLocaleDateString() : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button key={insurance.Id + '-trigger'} variant="link" size="sm">
-                            View
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent key={insurance.Id + '-dialog'} className="max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle>Insurance Details</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div key={insurance.Id + '-driver'}>
-                                <div className="text-xs text-gray-500">Driver Name</div>
-                                <div className="font-medium">{insurance.DriverName}</div>
-                              </div>
-                              <div key={insurance.Id + '-policy'}>
-                                <div className="text-xs text-gray-500">Policy Number</div>
-                                <div className="font-medium">{insurance.PolicyNo}</div>
-                              </div>
-                              <div key={insurance.Id + '-insurer'}>
-                                <div className="text-xs text-gray-500">Insurer</div>
-                                <Badge variant="secondary">{insurance.Insurer}</Badge>
-                              </div>
-                              <div key={insurance.Id + '-marktype'}>
-                                <div className="text-xs text-gray-500">Mark Type</div>
-                                <Badge variant="outline">{insurance.MarkType}</Badge>
-                              </div>
-                              <div key={insurance.Id + '-chassis'}>
-                                <div className="text-xs text-gray-500">Chassis</div>
-                                <div className="font-medium">{insurance.Chassis || 'N/A'}</div>
-                              </div>
-                              <div key={insurance.Id + '-psv'}>
-                                <div className="text-xs text-gray-500">PSV</div>
-                                <div className="font-medium">{insurance.Psv || 'N/A'}</div>
-                              </div>
-                              <div key={insurance.Id + '-usage'}>
-                                <div className="text-xs text-gray-500">Usage</div>
-                                <div className="font-medium">{insurance.Usage || 'N/A'}</div>
-                              </div>
-                              <div key={insurance.Id + '-inception'}>
-                                <div className="text-xs text-gray-500">Inception Date</div>
-                                <div className="font-medium">{insurance.InceptionDate ? new Date(insurance.InceptionDate).toLocaleDateString() : 'N/A'}</div>
-                              </div>
-                              <div key={insurance.Id + '-expiry'}>
-                                <div className="text-xs text-gray-500">Expiry Date</div>
-                                <div className={insurance.ExpiryDate && new Date(insurance.ExpiryDate) < new Date() ? 'font-medium text-red-600' : 'font-medium'}>
-                                  {insurance.ExpiryDate ? new Date(insurance.ExpiryDate).toLocaleDateString() : 'N/A'}
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-4">Loading...</TableCell>
+                  </TableRow>
+                ) : insurances.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-4">No insurances found.</TableCell>
+                  </TableRow>
+                ) : (
+                  insurances.map((insurance) => (
+                    <TableRow key={insurance.Id}>
+                      <TableCell className="min-w-[180px] truncate font-semibold">
+                        {insurance.DriverName || 'Unknown Driver'}
+                      </TableCell>
+                      <TableCell>{insurance.PolicyNo || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{insurance.Insurer || 'N/A'}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{insurance.MarkType || 'N/A'}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {insurance.InceptionDate ? new Date(insurance.InceptionDate).toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell className={isExpired(insurance.ExpiryDate) ? 'text-red-600' : isExpiringSoon(insurance.ExpiryDate) ? 'text-orange-600' : ''}>
+                        {insurance.ExpiryDate ? new Date(insurance.ExpiryDate).toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {isExpired(insurance.ExpiryDate) ? (
+                          <Badge variant="destructive">Expired</Badge>
+                        ) : isExpiringSoon(insurance.ExpiryDate) ? (
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">Expiring Soon</Badge>
+                        ) : (
+                          <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="link" size="sm">
+                              View
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>Insurance Details</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <div className="text-xs text-gray-500">Driver Name</div>
+                                  <div className="font-medium">{insurance.DriverName || 'Unknown Driver'}</div>
                                 </div>
-                              </div>
-                              <div className="col-span-2" key={insurance.Id + '-doc'}>
-                                <div className="text-xs text-gray-500 mb-2">Insurance Document</div>
-                                <div className="border rounded-lg p-4 bg-gray-50">
-                                  {insurance.InsuranceDocument ? (
-                                    <img
-                                      src={insurance.InsuranceDocument}
-                                      alt="Insurance Document"
-                                      className="rounded-lg max-h-[200px] object-contain"
-                                    />
-                                  ) : (
-                                    <div className="text-gray-500 italic">No document uploaded</div>
-                                  )}
+                                <div>
+                                  <div className="text-xs text-gray-500">Policy Number</div>
+                                  <div className="font-medium">{insurance.PolicyNo || 'N/A'}</div>
                                 </div>
-                              </div>
-                              <div key={insurance.Id + '-created'}>
-                                <div className="text-xs text-gray-500">Created At</div>
-                                <div className="font-medium">{new Date(insurance.CreatedAt).toLocaleDateString()}</div>
-                              </div>
-                              <div key={insurance.Id + '-updated'}>
-                                <div className="text-xs text-gray-500">Last Updated</div>
-                                <div className="font-medium">{insurance.UpdatedOn ? new Date(insurance.UpdatedOn).toLocaleDateString() : 'N/A'}</div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Insurer</div>
+                                  <Badge variant="secondary">{insurance.Insurer || 'N/A'}</Badge>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Mark Type</div>
+                                  <Badge variant="outline">{insurance.MarkType || 'N/A'}</Badge>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Chassis</div>
+                                  <div className="font-medium">{insurance.Chassis || 'N/A'}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">PSV</div>
+                                  <div className="font-medium">{insurance.PSV || 'N/A'}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Usage</div>
+                                  <div className="font-medium">{insurance.Usage || 'N/A'}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Status</div>
+                                  <div>
+                                    {isExpired(insurance.ExpiryDate) ? (
+                                      <Badge variant="destructive">Expired</Badge>
+                                    ) : isExpiringSoon(insurance.ExpiryDate) ? (
+                                      <Badge variant="secondary" className="bg-orange-100 text-orange-800">Expiring Soon</Badge>
+                                    ) : (
+                                      <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Inception Date</div>
+                                  <div className="font-medium">
+                                    {insurance.InceptionDate ? new Date(insurance.InceptionDate).toLocaleDateString() : 'N/A'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Expiry Date</div>
+                                  <div className={isExpired(insurance.ExpiryDate) ? 'font-medium text-red-600' : isExpiringSoon(insurance.ExpiryDate) ? 'font-medium text-orange-600' : 'font-medium'}>
+                                    {insurance.ExpiryDate ? new Date(insurance.ExpiryDate).toLocaleDateString() : 'N/A'}
+                                  </div>
+                                </div>
+                                <div className="col-span-2">
+                                  <div className="text-xs text-gray-500 mb-2">Insurance Document</div>
+                                  <div className="border rounded-lg p-4 bg-gray-50">
+                                    {insurance.InsuranceDocument ? (
+                                      <img
+                                        src={getImageUrl(insurance.InsuranceDocument) || ''}
+                                        alt="Insurance Document"
+                                        className="rounded-lg max-h-[200px] object-contain w-full"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                        }}
+                                      />
+                                    ) : null}
+                                    <div className={`text-gray-500 italic ${insurance.InsuranceDocument ? 'hidden' : ''}`}>
+                                      {insurance.InsuranceDocument ? 'Failed to load document' : 'No document uploaded'}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Created At</div>
+                                  <div className="font-medium">{new Date(insurance.CreatedAt).toLocaleDateString()}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Last Updated</div>
+                                  <div className="font-medium">
+                                    {insurance.UpdatedOn ? new Date(insurance.UpdatedOn).toLocaleDateString() : 'Never'}
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <DialogFooter>
-                            <DialogClose asChild>
-                              <Button variant="outline">Close</Button>
-                            </DialogClose>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button variant="outline">Close</Button>
+                              </DialogClose>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
-            {loading && <div className="p-4 text-center text-gray-500">Loading...</div>}
-            {!loading && insurances.length === 0 && <div className="p-4 text-center text-gray-500">No insurances found.</div>}
           </div>
         </div>
       </div>

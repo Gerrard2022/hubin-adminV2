@@ -6,21 +6,49 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import MainLayout from '@/components/layout/MainLayout';
-import { supabase } from "@/lib/supabase";
+
+interface Location {
+  Id: string;
+  OriginAddress: string;
+  DestinationAddress: string;
+}
+
+interface Driver {
+  Id: string;
+  LegalName: string;
+  PhoneNumber: string;
+}
+
+interface User {
+  ClerkId: string;
+  // Add other user fields as needed
+}
 
 interface Ride {
-  ride_id: string;
-  DestinationAddress: string;
-  OriginAddress: string;
-  CreatedAt: string;
+  RideId: string;
+  LocationId: string;
+  RideTime: string;
   FarePrice: number;
-  is_completed: boolean;
   PaymentStatus: string;
+  PaymentMethod: string;
   DriverId: string;
-  Driver?: {
-    LegalName: string;
-    PhoneNumber: string;
-  };
+  UserId: string;
+  IsCompleted: boolean;
+  DriverClerkId: string;
+  Organization: string;
+  Distance: number;
+  IsDriverPaid: boolean;
+  Type: string;
+  Passengers: number;
+  DepartureDate: string;
+  DepartureTime: string;
+  PaymentInitiatedAt: string;
+  TipAmount: number;
+  IsSent: boolean;
+  CreatedAt: string;
+  Location?: Location;
+  Driver?: Driver;
+  User?: User;
 }
 
 export default function Rides() {
@@ -39,18 +67,20 @@ export default function Rides() {
   const fetchRides = async () => {
     try {
       setLoading(true);
-      const { data: fetchedRides, error } = await supabase
-        .from('Rides')
-        .select(`
-          *,
-          Driver:DriverId (
-            LegalName,
-            PhoneNumber
-          )
-        `)
-        .order('CreatedAt', { ascending: false });
+      
+      const response = await fetch('/api/rides', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to fetch rides');
+      }
+
+      const fetchedRides = await response.json();
+      
       if (fetchedRides) {
         setRides(fetchedRides);
         setFilteredRides(fetchedRides);
@@ -71,18 +101,19 @@ export default function Rides() {
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(ride => 
-        statusFilter === 'completed' ? ride.is_completed : !ride.is_completed
+        statusFilter === 'completed' ? ride.IsCompleted : !ride.IsCompleted
       );
     }
 
     if (paymentFilter !== 'all') {
       filtered = filtered.filter(ride => ride.PaymentStatus === paymentFilter);
     }
+
     if (searchTerm) {
       filtered = filtered.filter(ride => 
         ride.Driver?.LegalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ride.OriginAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ride.DestinationAddress?.toLowerCase().includes(searchTerm.toLowerCase())
+        ride.Location?.OriginAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ride.Location?.DestinationAddress?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -90,7 +121,6 @@ export default function Rides() {
   }, [rides, driverFilter, statusFilter, paymentFilter, searchTerm]);
 
   const uniqueDrivers = Array.from(new Set(rides.map(ride => ride.Driver?.LegalName).filter(Boolean)));
-
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("rw-RW", {
@@ -122,7 +152,7 @@ export default function Rides() {
                 <SelectContent>
                   <SelectItem value="all">All Drivers</SelectItem>
                   {uniqueDrivers.map((driver) => (
-                  <SelectItem key={driver} value={driver || 'N/A'}>{driver}</SelectItem>
+                    <SelectItem key={driver} value={driver || 'N/A'}>{driver}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -145,7 +175,7 @@ export default function Rides() {
                 <SelectContent>
                   <SelectItem value="all">All Payments</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="pending">Not Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -176,18 +206,18 @@ export default function Rides() {
                   </TableRow>
                 ) : (
                   filteredRides.map((ride) => (
-                    <TableRow key={ride.ride_id}>
+                    <TableRow key={ride.RideId}>
                       <TableCell className="w-32 truncate" title={ride.Driver?.LegalName || 'N/A'}>
                         {ride.Driver?.LegalName || 'N/A'}
                       </TableCell>
                       <TableCell className="w-28 truncate" title={ride.Driver?.PhoneNumber || 'N/A'}>
                         {ride.Driver?.PhoneNumber || 'N/A'}
                       </TableCell>
-                      <TableCell className="w-40 truncate" title={ride.OriginAddress}>
-                        {ride.OriginAddress}
+                      <TableCell className="w-40 truncate" title={ride.Location?.OriginAddress || 'N/A'}>
+                        {ride.Location?.OriginAddress || 'N/A'}
                       </TableCell>
-                      <TableCell className="w-40 truncate" title={ride.DestinationAddress}>
-                        {ride.DestinationAddress}
+                      <TableCell className="w-40 truncate" title={ride.Location?.DestinationAddress || 'N/A'}>
+                        {ride.Location?.DestinationAddress || 'N/A'}
                       </TableCell>
                       <TableCell className="w-24">
                         {new Date(ride.CreatedAt).toLocaleDateString('en-GB')}
@@ -197,10 +227,10 @@ export default function Rides() {
                       </TableCell>
                       <TableCell className="w-24">
                         <Badge 
-                          variant={ride.is_completed ? 'default' : 'secondary'} 
-                          className={`text-xs ${ride.is_completed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                          variant={ride.IsCompleted ? 'default' : 'secondary'} 
+                          className={`text-xs ${ride.IsCompleted ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                         >
-                          {ride.is_completed ? 'Done' : 'Pending'}
+                          {ride.IsCompleted ? 'Done' : 'Pending'}
                         </Badge>
                       </TableCell>
                       <TableCell className="w-24">

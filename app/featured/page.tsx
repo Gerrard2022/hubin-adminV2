@@ -6,20 +6,17 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { supabase } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import { createFeaturedLocation, deleteFeaturedLocation, fetchFeaturedLocations, updateFeaturedLocation } from './actions';
 import { ApprovalPopup } from '@/components/ApprovalPopup';   
 
 interface FeaturedLocation {
-  Id: number;
+  Id: string; // Changed from number to string (UUID)
   CreatedAt: string;
   Title: string;
   SubTitle: string;
   Image: string;
-  Address?: string;
-  Latitude?: number;
-  Longitude?: number;
+  AddressId?: string;
 }
 
 export default function FeaturedLocations() {
@@ -27,7 +24,7 @@ export default function FeaturedLocations() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [form, setForm] = useState({ Title: '', SubTitle: '', Image: '' });
+  const [form, setForm] = useState({ Title: '', SubTitle: '', Image: '', AddressId: '' });
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingLocation, setEditingLocation] = useState<FeaturedLocation | null>(null);
@@ -48,7 +45,7 @@ export default function FeaturedLocations() {
     }
   };
 
-  const handleDeleteLocation = async (id: number) => {
+  const handleDeleteLocation = async (id: string) => {
     try {
       setLoading(true);
       await deleteFeaturedLocation(id);
@@ -67,13 +64,35 @@ export default function FeaturedLocations() {
     }
   };
 
+  const uploadImageToUploadThing = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('files', file);
+    
+    const response = await fetch('/api/uploadthing', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
+    }
+    
+    const data = await response.json();
+    return data[0]?.url || data.url;
+  };
+
   const handleOpenModal = (location?: FeaturedLocation) => {
     if (location) {
-      setForm({ Title: location.Title, SubTitle: location.SubTitle, Image: location.Image });
+      setForm({ 
+        Title: location.Title, 
+        SubTitle: location.SubTitle, 
+        Image: location.Image,
+        AddressId: location.AddressId || ''
+      });
       setEditingLocation(location);
       setImageFile(null);
     } else {
-      setForm({ Title: '', SubTitle: '', Image: '' });
+      setForm({ Title: '', SubTitle: '', Image: '', AddressId: '' });
       setEditingLocation(null);
       setImageFile(null);
     }
@@ -88,43 +107,36 @@ export default function FeaturedLocations() {
     }
     setSubmitting(true);
     try {
-      let filePath = form.Image;
+      let imageUrl = form.Image;
+      
+      // Upload new image to UploadThing if provided
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        filePath = `${fileName}`;
-        const { error: uploadError } = await supabase.storage
-          .from('featured-locations')
-          .upload(filePath, imageFile);
-        if (uploadError) {
-          toast.error(`Failed to upload image: ${uploadError.message}`);
-          setSubmitting(false);
-          return;
-        }
+        imageUrl = await uploadImageToUploadThing(imageFile);
       }
+
+      const locationData = {
+        Title: form.Title,
+        SubTitle: form.SubTitle,
+        Image: imageUrl,
+        AddressId: form.AddressId || undefined,
+      };
+
       if (editingLocation) {
-        const updated = await updateFeaturedLocation(editingLocation.Id, {
-          Title: form.Title,
-          SubTitle: form.SubTitle,
-          Image: filePath,
-        });
+        const updated = await updateFeaturedLocation(editingLocation.Id, locationData);
         if (updated) {
           setLocations(prev => prev.map(loc => loc.Id === updated.Id ? updated : loc));
           toast.success('Featured location updated successfully');
         }
       } else {
-        const newLocation = await createFeaturedLocation({
-          Title: form.Title,
-          SubTitle: form.SubTitle,
-          Image: filePath,
-        });
+        const newLocation = await createFeaturedLocation(locationData);
         if (newLocation) {
           setLocations(prevLocations => [newLocation, ...prevLocations]);
           toast.success('Featured location created successfully');
         }
       }
+      
       setModalOpen(false);
-      setForm({ Title: '', SubTitle: '', Image: '' });
+      setForm({ Title: '', SubTitle: '', Image: '', AddressId: '' });
       setImageFile(null);
       setEditingLocation(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -169,6 +181,14 @@ export default function FeaturedLocations() {
                     />
                   </div>
                   <div>
+                    <label className="block font-medium mb-1">Address ID (Optional)</label>
+                    <Input
+                      value={form.AddressId}
+                      onChange={e => setForm(f => ({ ...f, AddressId: e.target.value }))}
+                      placeholder="Enter address ID"
+                    />
+                  </div>
+                  <div>
                     <label className="block font-medium mb-1">Location Image</label>
                     <Input
                       type="file"
@@ -181,7 +201,7 @@ export default function FeaturedLocations() {
                       <div className="mt-2">
                         <span className="text-xs text-gray-500">Current image:</span>
                         <img
-                          src={(() => { let imageUrl = editingLocation.Image; if (!/^https?:\/\//.test(imageUrl)) { const { data } = supabase.storage.from('featured-locations').getPublicUrl(imageUrl); imageUrl = data.publicUrl; } return imageUrl; })()}
+                          src={editingLocation.Image}
                           alt="Current"
                           className="w-20 h-20 object-cover rounded mt-1"
                         />
@@ -204,50 +224,45 @@ export default function FeaturedLocations() {
                   <TableHead>Image</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Subtitle</TableHead>
+                  <TableHead>Address ID</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {locations.map((loc) => {
-                  let imageUrl = loc.Image;
-                  if (!/^https?:\/\//.test(loc.Image)) {
-                    const { data } = supabase.storage.from('featured-locations').getPublicUrl(loc.Image);
-                    imageUrl = data.publicUrl;
-                  }
-                  return (
-                    <TableRow key={loc.Id}>
-                      <TableCell>
-                        <img
-                          src={imageUrl}
-                          alt="Location"
-                          className="w-24 h-24 object-cover rounded-lg"
+                {locations.map((loc) => (
+                  <TableRow key={loc.Id}>
+                    <TableCell>
+                      <img
+                        src={loc.Image}
+                        alt="Location"
+                        className="w-24 h-24 object-cover rounded-lg"
+                      />
+                    </TableCell>
+                    <TableCell className="font-semibold">{loc.Title}</TableCell>
+                    <TableCell>{loc.SubTitle}</TableCell>
+                    <TableCell>{loc.AddressId || 'N/A'}</TableCell>
+                    <TableCell>{new Date(loc.CreatedAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => handleOpenModal(loc)} disabled={loading}>
+                          Edit
+                        </Button>
+                        <ApprovalPopup
+                          Description="Are you sure you want to delete this featured location? This action cannot be undone."
+                          Title="Delete Featured Location"
+                          Trigger={
+                            <Button variant="destructive" size="sm" disabled={loading}>
+                              Delete
+                            </Button>
+                          }
+                          OnConfirm={() => handleDeleteLocation(loc.Id)}
+                          OnCancel={() => {}}
                         />
-                      </TableCell>
-                      <TableCell className="font-semibold">{loc.Title}</TableCell>
-                      <TableCell>{loc.SubTitle}</TableCell>
-                      <TableCell>{new Date(loc.CreatedAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleOpenModal(loc)} disabled={loading}>
-                            Edit
-                          </Button>
-                          <ApprovalPopup
-                            Description="Are you sure you want to delete this featured location? This action cannot be undone."
-                            Title="Delete Featured Location"
-                            Trigger={
-                              <Button variant="destructive" size="sm" disabled={loading}>
-                                Delete
-                              </Button>
-                            }
-                            OnConfirm={() => handleDeleteLocation(loc.Id)}
-                            OnCancel={() => {}}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
             {loading && <div className="p-4 text-center text-gray-500">Loading...</div>}

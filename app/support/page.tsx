@@ -6,10 +6,10 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/layout/MainLayout';
-import { supabase } from '@/lib/supabase';
+import { toast } from "sonner"
 
 interface SupportRequest {
-  Id: number;
+  Id: string;
   CreatedAt: string;
   Message: string;
   ContactInfo: string;
@@ -29,36 +29,58 @@ export default function SupportRequests() {
   const fetchSupportRequests = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('SupportRequests')
-        .select('*')
-        .eq('Status', 'pending')
-        .order('CreatedAt', { ascending: false });
-      if (error) throw error;
-      setSupportRequests(data || []);
+      
+      const response = await fetch('/api/support-requests', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch support requests');
+      }
+
+      const data = await response.json();
+      setSupportRequests(data);
+      
     } catch (error) {
-      alert('Failed to load support requests');
+      console.error('Error fetching support requests:', error);
+      toast.error('Failed to load support requests');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusChange = async (requestId: number, newStatus: string) => {
+  const handleStatusChange = async (requestId: string, newStatus: string) => {
     try {
+      // Optimistically update UI
       setSupportRequests(currentRequests => 
         currentRequests.filter(request => request.Id !== requestId)
       );
-      const { error } = await supabase
-        .from('SupportRequests')
-        .update({ Status: newStatus })
-        .eq('Id', requestId);
-      if (error) {
+      
+      const response = await fetch('/api/support-requests/status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId,
+          status: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        // Revert optimistic update by refetching
         fetchSupportRequests();
-        throw error;
+        throw new Error('Failed to update support request status');
       }
-      alert(`Support request marked as ${newStatus}`);
+
+      toast.success(`Support request marked as ${newStatus}`);
+      
     } catch (error) {
-      alert('Failed to update support request status');
+      console.error('Error updating support request:', error);
+      toast.error('Failed to update support request status');
     }
   };
 
@@ -81,74 +103,94 @@ export default function SupportRequests() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {supportRequests.map((request) => (
-                  <TableRow key={request.Id}>
-                    <TableCell className="min-w-[180px] truncate font-semibold">{request.Subject}</TableCell>
-                    <TableCell>{request.ContactInfo}</TableCell>
-                    <TableCell>{new Date(request.CreatedAt).toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                        {request.Status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button key={request.Id + '-trigger'} variant="link" size="sm">
-                            Edit
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent key={request.Id + '-dialog'} className="max-w-xl">
-                          <DialogHeader>
-                            <DialogTitle>Support Request Details</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div key={request.Id + '-subject'}>
-                                <div className="text-xs text-gray-500">Subject</div>
-                                <div className="font-medium">{request.Subject}</div>
-                              </div>
-                              <div key={request.Id + '-contact'}>
-                                <div className="text-xs text-gray-500">Contact Info</div>
-                                <div className="font-medium">{request.ContactInfo}</div>
-                              </div>
-                              <div className="col-span-2" key={request.Id + '-message'}>
-                                <div className="text-xs text-gray-500">Message</div>
-                                <div className="border rounded-lg p-4 bg-gray-50">{request.Message}</div>
-                              </div>
-                              <div key={request.Id + '-created'}>
-                                <div className="text-xs text-gray-500">Created At</div>
-                                <div className="font-medium">{new Date(request.CreatedAt).toLocaleString()}</div>
-                              </div>
-                              <div key={request.Id + '-status'}>
-                                <div className="text-xs text-gray-500">Update Status</div>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4">Loading...</TableCell>
+                  </TableRow>
+                ) : supportRequests.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4">No pending requests found.</TableCell>
+                  </TableRow>
+                ) : (
+                  supportRequests.map((request) => (
+                    <TableRow key={request.Id}>
+                      <TableCell className="min-w-[180px] truncate font-semibold">{request.Subject}</TableCell>
+                      <TableCell>{request.ContactInfo}</TableCell>
+                      <TableCell>{new Date(request.CreatedAt).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                          {request.Status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="link" size="sm">
+                              Edit
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-xl">
+                            <DialogHeader>
+                              <DialogTitle>Support Request Details</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <select
-                                    className="w-full border rounded px-2 py-1"
-                                    value={request.Status}
-                                    onChange={(e) => handleStatusChange(request.Id, e.target.value)}
-                                  >
-                                    <option value="answered">Answered</option>
-                                    <option value="pending">Pending</option>
-                                  </select>
+                                  <div className="text-xs text-gray-500">Subject</div>
+                                  <div className="font-medium">{request.Subject}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Contact Info</div>
+                                  <div className="font-medium">{request.ContactInfo}</div>
+                                </div>
+                                <div className="col-span-2">
+                                  <div className="text-xs text-gray-500">Message</div>
+                                  <div className="border rounded-lg p-4 bg-gray-50 whitespace-pre-wrap">{request.Message}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">User ID</div>
+                                  <div className="font-medium text-sm text-gray-600">{request.UserId}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500">Created At</div>
+                                  <div className="font-medium">{new Date(request.CreatedAt).toLocaleString()}</div>
+                                </div>
+                                <div className="col-span-2">
+                                  <div className="text-xs text-gray-500 mb-2">Update Status</div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant={request.Status === 'answered' ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => handleStatusChange(request.Id, 'answered')}
+                                      disabled={request.Status === 'answered'}
+                                    >
+                                      Mark as Answered
+                                    </Button>
+                                    <Button
+                                      variant={request.Status === 'pending' ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => handleStatusChange(request.Id, 'pending')}
+                                      disabled={request.Status === 'pending'}
+                                    >
+                                      Mark as Pending
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                          <DialogFooter>
-                            <DialogClose asChild>
-                              <Button variant="outline">Close</Button>
-                            </DialogClose>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button variant="outline">Close</Button>
+                              </DialogClose>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
-            {loading && <div className="p-4 text-center text-gray-500">Loading...</div>}
-            {!loading && supportRequests.length === 0 && <div className="p-4 text-center text-gray-500">No pending requests found.</div>}
           </div>
         </div>
       </div>
