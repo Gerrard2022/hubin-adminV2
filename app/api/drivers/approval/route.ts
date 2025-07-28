@@ -51,7 +51,6 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// Optional: GET method to fetch a specific driver's approval status
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

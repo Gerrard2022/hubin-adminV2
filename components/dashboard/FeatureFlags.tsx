@@ -49,28 +49,31 @@ export default function FeatureFlags() {
     }
   };
 
-  const toggleFeatureFlag = async (featureName: string, is_enabled: boolean) => {
+  const toggleFeatureFlag = async (featureName: string) => {
     try {
       setUpdating(featureName);
       const response = await fetch(`/api/feature-flags/${encodeURIComponent(featureName)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_enabled }),
+
       });
-
-      if (!response.ok) throw new Error('Failed to update feature flag');
-
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to toggle feature flag');
+      }
+  
       const updatedFlag = await response.json();
       setFlags(prev => prev.map(flag => 
-        flag.feature_name === featureName 
-          ? { ...flag, is_enabled: updatedFlag.is_enabled }
+        flag.feature_name === updatedFlag.feature_name || flag.id === updatedFlag.id
+          ? updatedFlag
           : flag
       ));
-
-      toast.success(`${featureName} ${is_enabled ? 'enabled' : 'disabled'}`);
+  
+      toast.success(`${updatedFlag.feature_name} ${updatedFlag.is_enabled ? 'enabled' : 'disabled'}`);
     } catch (error) {
-      console.error('Error updating feature flag:', error);
-      toast.error('Failed to update feature flag');
+      console.error('Error toggling feature flag:', error);
+      toast.error('Failed to toggle feature flag');
     } finally {
       setUpdating(null);
     }
@@ -215,7 +218,7 @@ export default function FeatureFlags() {
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={flag.is_enabled}
-                    onCheckedChange={(is_enabled) => toggleFeatureFlag(flag.feature_name, is_enabled)}
+                    onCheckedChange={() => toggleFeatureFlag(flag.feature_name)}
                     disabled={updating === flag.feature_name}
                   />
                   <Button

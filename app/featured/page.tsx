@@ -11,7 +11,7 @@ import { createFeaturedLocation, deleteFeaturedLocation, fetchFeaturedLocations,
 import { ApprovalPopup } from '@/components/ApprovalPopup';   
 
 interface FeaturedLocation {
-  Id: string; // Changed from number to string (UUID)
+  Id: string; 
   CreatedAt: string;
   Title: string;
   SubTitle: string;
@@ -109,7 +109,7 @@ export default function FeaturedLocations() {
     try {
       let imageUrl = form.Image;
       
-      // Upload new image to UploadThing if provided
+      
       if (imageFile) {
         imageUrl = await uploadImageToUploadThing(imageFile);
       }

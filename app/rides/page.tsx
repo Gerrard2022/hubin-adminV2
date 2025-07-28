@@ -21,7 +21,6 @@ interface Driver {
 
 interface User {
   ClerkId: string;
-  // Add other user fields as needed
 }
 
 interface Ride {

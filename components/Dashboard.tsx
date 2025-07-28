@@ -72,7 +72,6 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <div className="flex flex-col gap-6 p-6">
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <DashboardTotalCountCard
             title="Total Rides"
@@ -97,7 +96,6 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Chart + Recent Rides */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Ride Overview</h2>
@@ -109,7 +107,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Feature Flags */}
         <div className="bg-white mt-6 p-6 rounded-lg shadow w-full lg:w-1/2">
           <h2 className="text-xl font-semibold mb-4">Feature Flags</h2>
           <FeatureFlags />

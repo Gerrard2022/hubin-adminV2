@@ -1,4 +1,3 @@
-// app/api/dashboard/stats/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
@@ -11,7 +10,6 @@ export async function GET() {
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const firstDayOfLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
 
-      // Get current month rides
       const currentRidesQuery = `
         SELECT "FarePrice"
         FROM public."Rides"
@@ -19,7 +17,6 @@ export async function GET() {
       `;
       const currentRidesResult = await client.query(currentRidesQuery, [firstDayOfMonth.toISOString()]);
 
-      // Get last month rides
       const lastMonthRidesQuery = `
         SELECT "FarePrice"
         FROM public."Rides"
@@ -30,14 +27,12 @@ export async function GET() {
         firstDayOfMonth.toISOString()
       ]);
 
-      // Get current total drivers
       const currentDriversQuery = `
         SELECT COUNT(*) as count
         FROM public."Driver"
       `;
       const currentDriversResult = await client.query(currentDriversQuery);
 
-      // Get drivers count before this month
       const lastMonthDriversQuery = `
         SELECT COUNT(*) as count
         FROM public."Driver"
@@ -45,7 +40,6 @@ export async function GET() {
       `;
       const lastMonthDriversResult = await client.query(lastMonthDriversQuery, [firstDayOfMonth.toISOString()]);
 
-      // Calculate totals and growth
       const currentRides = currentRidesResult.rows;
       const lastMonthRides = lastMonthRidesResult.rows;
       const currentDriversCount = parseInt(currentDriversResult.rows[0].count);

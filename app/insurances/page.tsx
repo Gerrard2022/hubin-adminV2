@@ -19,16 +19,15 @@ interface DriverInsurance {
   ExpiryDate: string | null;
   MarkType: string | null;
   Chassis: string | null;
-  PSV: string | null; // Updated field name to match schema
+  PSV: string | null; 
   Usage: string | null;
   Insurer: string | null;
   DriverName?: string;
 }
 
-// Handle image URLs (you might need to adapt this based on your storage solution)
 const getImageUrl = (imagePath: string | null | undefined) => {
   if (!imagePath) return null;
-  // Assuming images are stored as URLs or in a different storage solution
+  
   return imagePath;
 };
 

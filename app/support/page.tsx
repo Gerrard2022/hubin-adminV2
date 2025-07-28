@@ -54,7 +54,6 @@ export default function SupportRequests() {
 
   const handleStatusChange = async (requestId: string, newStatus: string) => {
     try {
-      // Optimistically update UI
       setSupportRequests(currentRequests => 
         currentRequests.filter(request => request.Id !== requestId)
       );
@@ -71,7 +70,6 @@ export default function SupportRequests() {
       });
 
       if (!response.ok) {
-        // Revert optimistic update by refetching
         fetchSupportRequests();
         throw new Error('Failed to update support request status');
       }

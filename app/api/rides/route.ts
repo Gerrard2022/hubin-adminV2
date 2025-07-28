@@ -6,7 +6,6 @@ export async function GET(request: NextRequest) {
     const client = await pool.connect();
     
     try {
-      // Query to get rides with joined driver and location data
       const query = `
         SELECT 
           r."RideId",
@@ -44,7 +43,6 @@ export async function GET(request: NextRequest) {
       
       const result = await client.query(query);
       
-      // Transform the data to match the expected structure
       const rides = result.rows.map(row => ({
         RideId: row.RideId,
         LocationId: row.LocationId,
@@ -92,18 +90,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Optional: Add other HTTP methods if needed
+
 export async function POST(request: NextRequest) {
-  // Handle ride creation if needed
   return NextResponse.json({ message: 'Not implemented' }, { status: 501 });
 }
 
 export async function PUT(request: NextRequest) {
-  // Handle ride updates if needed
   return NextResponse.json({ message: 'Not implemented' }, { status: 501 });
 }
 
 export async function DELETE(request: NextRequest) {
-  // Handle ride deletion if needed
   return NextResponse.json({ message: 'Not implemented' }, { status: 501 });
 }

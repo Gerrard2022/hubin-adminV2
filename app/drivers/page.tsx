@@ -93,7 +93,6 @@ export default function Drivers() {
     if (!pendingApproval) return;
 
     try {
-      // Optimistically update the UI
       setDrivers(currentDrivers =>
         currentDrivers.map(driver =>
           driver.Id === pendingApproval.driverId
@@ -114,7 +113,6 @@ export default function Drivers() {
       });
 
       if (!response.ok) {
-        // Revert the optimistic update
         setDrivers(currentDrivers =>
           currentDrivers.map(driver =>
             driver.Id === pendingApproval.driverId

@@ -1,4 +1,3 @@
-// app/api/driver-insurances/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
@@ -7,8 +6,6 @@ export async function GET(request: NextRequest) {
     const client = await pool.connect();
     
     try {
-      // Query to get driver insurances with driver information
-      // Note: The foreign key links DriverInsurance.DriverId to Driver.ClerkId
       const query = `
         SELECT 
           di.*,
@@ -22,7 +19,6 @@ export async function GET(request: NextRequest) {
       
       const result = await client.query(query);
       
-      // Transform the data to match the expected structure
       const insurances = result.rows.map(row => ({
         Id: row.Id,
         CreatedAt: row.CreatedAt,
@@ -34,7 +30,7 @@ export async function GET(request: NextRequest) {
         ExpiryDate: row.ExpiryDate,
         MarkType: row.MarkType,
         Chassis: row.Chassis,
-        PSV: row.PSV, // Updated field name
+        PSV: row.PSV,
         Usage: row.Usage,
         Insurer: row.Insurer,
         DriverName: row.driver_name
@@ -74,7 +70,6 @@ export async function POST(request: NextRequest) {
         Insurer
       } = body;
 
-      // Validate required fields
       if (!DriverId) {
         return NextResponse.json(
           { error: 'DriverId is required' }, 
@@ -132,7 +127,6 @@ export async function PUT(request: NextRequest) {
         Insurer
       } = body;
 
-      // Validate required fields
       if (!Id) {
         return NextResponse.json(
           { error: 'Insurance ID is required' }, 

@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
@@ -7,7 +6,6 @@ export async function GET(request: NextRequest) {
     const client = await pool.connect();
     
     try {
-      // Query to get support requests, filtering for pending by default
       const { searchParams } = new URL(request.url);
       const status = searchParams.get('status') || 'pending';
       
@@ -21,7 +19,6 @@ export async function GET(request: NextRequest) {
       
       const result = await client.query(query, [status]);
       
-      // Transform the data to match the expected structure
       const supportRequests = result.rows.map(row => ({
         Id: row.Id,
         CreatedAt: row.CreatedAt,
@@ -61,7 +58,6 @@ export async function POST(request: NextRequest) {
         UserId
       } = body;
 
-      // Validate required fields
       if (!Message || !ContactInfo || !Subject || !UserId) {
         return NextResponse.json(
           { error: 'Message, ContactInfo, Subject, and UserId are required' }, 

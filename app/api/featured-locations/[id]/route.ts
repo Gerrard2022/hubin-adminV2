@@ -1,4 +1,3 @@
-// app/api/featured-locations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
@@ -94,7 +93,6 @@ export async function DELETE(
   }
 }
 
-// Optional: GET method to fetch a specific featured location
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

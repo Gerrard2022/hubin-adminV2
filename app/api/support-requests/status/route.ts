@@ -6,7 +6,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { requestId, status } = body;
 
-    // Validate input
     if (!requestId || !status) {
       return NextResponse.json(
         { error: 'Request ID and status are required' }, 
@@ -14,7 +13,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate status values
     const validStatuses = ['pending', 'answered', 'resolved', 'closed'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
@@ -60,7 +58,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// Optional: GET method to fetch a specific support request
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
